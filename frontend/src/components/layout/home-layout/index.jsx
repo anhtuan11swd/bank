@@ -7,10 +7,12 @@ import {
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
 import { useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 const { Header, Sider, Content } = Layout;
 const HomeLayout = ({ children }) => {
   const [collapsed, setCollapsed] = useState(true);
+  const location = useLocation();
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -24,40 +26,48 @@ const HomeLayout = ({ children }) => {
       >
         <div className="demo-logo-vertical" />
         <Menu
-          defaultSelectedKeys={["1"]}
           items={[
             {
               icon: <UserOutlined />,
-              key: "1",
-              label: "nav 1",
+              key: "/",
+              label: <Link to="/">Trang chủ</Link>,
             },
             {
               icon: <VideoCameraOutlined />,
-              key: "2",
-              label: "nav 2",
+              key: "/nav-2",
+              label: <Link to="/nav-2">Giới thiệu</Link>,
             },
             {
               icon: <UploadOutlined />,
-              key: "3",
-              label: "nav 3",
+              key: "/nav-3",
+              label: <Link to="/nav-3">Liên hệ</Link>,
             },
           ]}
           mode="inline"
+          selectedKeys={[location.pathname]}
           theme="dark"
         />
       </Sider>
       <Layout>
         <Header style={{ background: colorBgContainer, padding: 0 }}>
-          <Button
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{
-              fontSize: "16px",
-              height: 64,
-              width: 64,
-            }}
-            type="text"
-          />
+          <div className="flex justify-between items-center px-4">
+            <Button
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{
+                fontSize: "16px",
+                height: 64,
+                width: 64,
+              }}
+              type="text"
+            />
+            <Link
+              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded text-white"
+              to="/admin"
+            >
+              Truy cập bảng quản trị
+            </Link>
+          </div>
         </Header>
         <Content
           style={{

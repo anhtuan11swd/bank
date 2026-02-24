@@ -1,4 +1,6 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
+import Dashboard from "./components/admin";
+import NewEmployee from "./components/admin/NewEmployee";
 import HomePage from "./components/home";
 
 function App() {
@@ -6,6 +8,8 @@ function App() {
     <BrowserRouter>
       <Routes>
         <Route element={<HomePage />} path="/" />
+        <Route element={<Dashboard />} path="/admin" />
+        <Route element={<NewEmployee />} path="/admin/new-employee" />
       </Routes>
     </BrowserRouter>
   );
