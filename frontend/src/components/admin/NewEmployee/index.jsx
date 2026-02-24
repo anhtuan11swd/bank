@@ -5,16 +5,14 @@ import {
   EyeOutlined,
 } from "@ant-design/icons";
 import { Avatar, Button, Card, Form, Input, message, Table } from "antd";
-import axios from "axios";
 import { useState } from "react";
 import swal from "sweetalert";
-import { trimData } from "../../../modules/modules";
+import { http, trimData } from "../../../modules/modules";
 import AdminLayout from "../../layout/AdminLayout";
 
-// Cấu hình base URL cho axios
-axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
-
 const NewEmployee = () => {
+  // Khởi tạo http request với cấu hình mặc định
+  const httpRequest = http();
   // Khởi tạo hook useForm để quản lý form
   const [EMPForm] = Form.useForm();
 
@@ -30,7 +28,7 @@ const NewEmployee = () => {
     setLoading(true);
 
     try {
-      const response = await axios.post("/api/users", finalObj);
+      const response = await httpRequest.post("/api/users", finalObj);
       console.log("Response:", response.data);
 
       // Hiển thị thông báo thành công bằng SweetAlert

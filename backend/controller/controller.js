@@ -11,6 +11,8 @@ export const createData = async (req, res, schema) => {
       success: true,
     });
   } catch (error) {
+    console.error("Error creating data:", error);
+
     if (error.code === 11000) {
       return res.status(422).json({
         message: "Email đã tồn tại",
@@ -19,6 +21,7 @@ export const createData = async (req, res, schema) => {
     }
 
     return res.status(500).json({
+      error: error.message,
       message: "Lỗi máy chủ nội bộ",
       success: false,
     });

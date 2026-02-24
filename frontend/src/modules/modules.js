@@ -1,3 +1,5 @@
+import axios from "axios";
+
 /**
  * Hàm dùng chung để xử lý dữ liệu
  * Loại bỏ khoảng trắng thừa và chuyển đổi sang chữ thường
@@ -19,4 +21,19 @@ export const trimData = (obj) => {
   }
 
   return finalObj;
+};
+
+/**
+ * Hàm tạo instance HTTP dùng chung cho frontend
+ * @param {string|null} accessToken - Token xác thực (mặc định null)
+ * @returns {Object} - Instance axios đã được cấu hình
+ */
+export const http = (accessToken = null) => {
+  axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
+
+  if (accessToken) {
+    axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+  }
+
+  return axios;
 };
