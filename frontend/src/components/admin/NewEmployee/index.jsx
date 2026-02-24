@@ -4,11 +4,61 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import { Avatar, Card, Form, Input, message, Table } from "antd";
+import { Avatar, Button, Card, Form, Input, message, Table } from "antd";
+import axios from "axios";
+import { useState } from "react";
+import swal from "sweetalert";
+import { trimData } from "../../../modules/modules";
 import AdminLayout from "../../layout/AdminLayout";
 
+// Cấu hình base URL cho axios
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL;
+
 const NewEmployee = () => {
-  const [form] = Form.useForm();
+  // Khởi tạo hook useForm để quản lý form
+  const [EMPForm] = Form.useForm();
+
+  // State cho trạng thái loading
+  const [loading, setLoading] = useState(false);
+
+  // Xử lý khi form được submit thành công
+  const onFinish = async (values) => {
+    const finalObj = trimData(values);
+    console.log("Success:", finalObj);
+
+    // Bật trạng thái loading
+    setLoading(true);
+
+    try {
+      const response = await axios.post("/api/users", finalObj);
+      console.log("Response:", response.data);
+
+      // Hiển thị thông báo thành công bằng SweetAlert
+      swal("Tạo nhân viên thành công", "Thông báo thành công", "success");
+
+      // Đặt lại form sau khi đăng ký thành công
+      EMPForm.resetFields();
+    } catch (error) {
+      console.error("Error:", error);
+
+      // Kiểm tra lỗi trùng lặp email (mã lỗi 11000)
+      if (error.response?.data?.error?.code === 11000) {
+        // Hiển thị lỗi tại trường email
+        EMPForm.setFields([
+          {
+            errors: ["Email đã tồn tại"],
+            name: "email",
+          },
+        ]);
+      } else {
+        // Hiển thị thông báo lỗi hệ thống bằng SweetAlert
+        swal("Vui lòng thử lại sau", "Lỗi hệ thống", "warning");
+      }
+    } finally {
+      // Tắt trạng thái loading trong mọi trường hợp
+      setLoading(false);
+    }
+  };
 
   // Handle enable/disable employee
   const handleToggleStatus = (record) => {
@@ -32,17 +82,13 @@ const NewEmployee = () => {
     message.error("Đã xóa nhân viên khỏi hệ thống");
   };
 
-  const onFinish = (values) => {
-    console.log("Success:", values);
-  };
-
   const columns = [
     {
       key: "profile",
       render: (_, record) => (
         <Avatar
           size={40}
-          src={record.avatar}
+          src={record.avatar || null}
           style={{ backgroundColor: record.avatar ? undefined : "#1890ff" }}
         >
           {record.fullName?.charAt(0).toUpperCase()}
@@ -152,7 +198,7 @@ const NewEmployee = () => {
       <div className="gap-3 grid md:grid-cols-3">
         {/* Add New Employee Card */}
         <Card className="md:col-span-1" title="Thêm nhân viên mới">
-          <Form form={form} layout="vertical" onFinish={onFinish}>
+          <Form form={EMPForm} layout="vertical" onFinish={onFinish}>
             <Form.Item label="Ảnh đại diện" name="photo">
               <Input type="file" />
             </Form.Item>
@@ -202,12 +248,14 @@ const NewEmployee = () => {
               <Input.TextArea placeholder="Nhập địa chỉ" rows={3} />
             </Form.Item>
 
-            <button
-              className="bg-blue-500 hover:bg-blue-600 px-4 py-2 rounded w-full font-bold text-white"
-              type="submit"
+            <Button
+              className="w-full"
+              htmlType="submit"
+              loading={loading}
+              type="primary"
             >
               Thêm nhân viên
-            </button>
+            </Button>
           </Form>
         </Card>
 
