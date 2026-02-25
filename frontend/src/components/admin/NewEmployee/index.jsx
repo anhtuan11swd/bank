@@ -47,7 +47,7 @@ const NewEmployee = () => {
     }
   }, [httpRequest, messageApi]);
 
-  // Sử dụng useEffect để gọi API khi component được mount
+  // Sử dụng useEffect để gọi API khi component được mount hoặc number thay đổi
   useEffect(() => {
     fetchEmployees();
   }, [fetchEmployees]);
@@ -165,10 +165,22 @@ const NewEmployee = () => {
     messageApi.info("Chỉnh sửa thông tin nhân viên");
   };
 
-  // Handle delete employee
-  const handleDelete = (record) => {
-    console.log("Xóa:", record);
-    messageApi.error("Đã xóa nhân viên khỏi hệ thống");
+  // Hàm xóa nhân viên (async với try-catch)
+  const onDeleteUser = async (id) => {
+    try {
+      // Thực hiện yêu cầu HTTP DELETE tới endpoint /api/users/ kèm theo ID
+      await httpRequest.delete(`/api/users/${id}`);
+
+      // Khi thành công, hiển thị thông báo "Xóa nhân viên thành công"
+      messageApi.success("Xóa nhân viên thành công");
+
+      // Cập nhật lại danh sách nhân viên trên UI mà không cần reload
+      setAllEmployee((prev) => prev.filter((emp) => emp._id !== id));
+    } catch (error) {
+      // Hiển thị thông báo lỗi "Unable to delete user" nếu có sự cố
+      console.error("Lỗi khi xóa nhân viên:", error);
+      messageApi.error("Không thể xóa nhân viên");
+    }
   };
 
   const columns = [
@@ -246,10 +258,16 @@ const NewEmployee = () => {
             className="text-green-500 hover:text-green-700 text-lg cursor-pointer"
             onClick={() => handleEdit(record)}
           />
-          <DeleteOutlined
-            className="text-rose-500 hover:text-rose-700 text-lg cursor-pointer"
-            onClick={() => handleDelete(record)}
-          />
+          <Popconfirm
+            cancelText="Không"
+            description="Sau khi xóa, bạn sẽ không thể khôi phục"
+            okText="Có"
+            onCancel={() => messageApi.info("Dữ liệu của bạn vẫn an toàn")}
+            onConfirm={() => onDeleteUser(record._id)}
+            title="Bạn có chắc chắn muốn xóa?"
+          >
+            <DeleteOutlined className="text-rose-500 hover:text-rose-700 text-lg cursor-pointer" />
+          </Popconfirm>
         </div>
       ),
       title: "Hành động",
@@ -267,7 +285,7 @@ const NewEmployee = () => {
       {/* ContextHolder để hiển thị notifications trên toàn ứng dụng */}
       {contextHolder}
       <div className="gap-3 grid md:grid-cols-3">
-        {/* Add New Employee Card */}
+        {/* Thẻ thêm nhân viên mới */}
         <Card className="md:col-span-1" title="Thêm nhân viên mới">
           <Form form={EMPForm} layout="vertical" onFinish={onFinish}>
             <Form.Item label="Ảnh đại diện" name="photo">
@@ -330,7 +348,7 @@ const NewEmployee = () => {
           </Form>
         </Card>
 
-        {/* Employee List Card */}
+        {/* Thẻ danh sách nhân viên */}
         <Card
           className="md:col-span-2"
           style={{ overflowX: "auto" }}

@@ -1,5 +1,6 @@
 import {
   createNewRecord,
+  deleteRecord,
   findAllRecord,
   updateRecord,
 } from "../services/db.js";
@@ -72,6 +73,33 @@ export const updateData = async (req, res, schema) => {
     });
   } catch (error) {
     console.error("Lỗi khi cập nhật dữ liệu:", error);
+
+    return res.status(500).json({
+      error: error.message,
+      message: "Lỗi máy chủ nội bộ",
+      success: false,
+    });
+  }
+};
+
+export const deleteData = async (req, res, schema) => {
+  try {
+    const { id } = req.params;
+    const deletedData = await deleteRecord(id, schema);
+
+    if (!deletedData) {
+      return res.status(404).json({
+        message: "Không tìm thấy bản ghi",
+        success: false,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Record Deleted",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Lỗi khi xóa dữ liệu:", error);
 
     return res.status(500).json({
       error: error.message,

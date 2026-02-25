@@ -1,5 +1,10 @@
 import express from "express";
-import { createData, getData, updateData } from "../controller/controller.js";
+import {
+  createData,
+  deleteData,
+  getData,
+  updateData,
+} from "../controller/controller.js";
 import User from "../model/users.model.js";
 
 const router = express.Router();
@@ -14,6 +19,10 @@ router.get("/", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
   await updateData(req, res, User);
+});
+
+router.delete("/:id", async (req, res) => {
+  await deleteData(req, res, User);
 });
 
 router.use((_req, res) => {
