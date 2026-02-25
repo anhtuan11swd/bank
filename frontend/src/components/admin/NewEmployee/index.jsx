@@ -4,9 +4,8 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import { Avatar, Button, Card, Form, Input, message, Table } from "antd";
-import { useState } from "react";
-import swal from "sweetalert";
+import { Button, Card, Form, Image, Input, message, Table } from "antd";
+import { useCallback, useEffect, useState } from "react";
 import { http, trimData } from "../../../modules/modules";
 import AdminLayout from "../../layout/AdminLayout";
 
@@ -21,6 +20,28 @@ const NewEmployee = () => {
 
   // State cho ảnh đại diện
   const [photo, setPhoto] = useState(null);
+
+  // State cho danh sách nhân viên
+  const [allEmployee, setAllEmployee] = useState([]);
+
+  // Sử dụng hook useMessage để tạo messageApi và contextHolder
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // Hàm lấy danh sách nhân viên từ API
+  const fetchEmployees = useCallback(async () => {
+    try {
+      const response = await httpRequest.get("/api/users");
+      setAllEmployee(response?.data?.data || []);
+    } catch (error) {
+      console.error("Lỗi khi lấy danh sách nhân viên:", error);
+      messageApi.error("Không thể lấy dữ liệu");
+    }
+  }, [httpRequest, messageApi]);
+
+  // Sử dụng useEffect để gọi API khi component được mount
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   // Hàm xử lý tải ảnh lên server
   const handleUpload = async (event) => {
@@ -39,15 +60,15 @@ const NewEmployee = () => {
 
       setPhoto(response?.data?.data?.path);
     } catch (error) {
-      console.error("Upload error:", error);
-      message.error("Unable to upload");
+      console.error("Lỗi khi tải lên:", error);
+      messageApi.error("Thất bại - Không thể tải lên");
     }
   };
 
   // Xử lý khi form được submit thành công
   const onFinish = async (values) => {
     const finalObj = trimData(values);
-    console.log("Success:", finalObj);
+    console.log("Thành công:", finalObj);
 
     // Gán ảnh đại diện cho nhân viên
     finalObj.profile = photo || "/bank-images/dummy.jpg";
@@ -57,7 +78,7 @@ const NewEmployee = () => {
 
     try {
       const response = await httpRequest.post("/api/users", finalObj);
-      console.log("Response:", response.data);
+      console.log("Phản hồi:", response.data);
 
       // Chỉ gửi email khi tạo user thành công
       if (response.status === 200 || response.status === 201) {
@@ -69,17 +90,20 @@ const NewEmployee = () => {
 
         // Gọi API gửi email thông tin đăng nhập
         const emailResponse = await httpRequest.post("/api/send-email", obj);
-        console.log("Email Response:", emailResponse.data);
+        console.log("Phản hồi Email:", emailResponse.data);
       }
 
-      // Hiển thị thông báo thành công bằng SweetAlert
-      swal("Tạo nhân viên thành công", "Thông báo thành công", "success");
+      // Hiển thị thông báo thành công bằng Ant Design Message
+      messageApi.success("Tạo nhân viên thành công");
 
       // Đặt lại form và state ảnh sau khi hoàn tất
       EMPForm.resetFields();
       setPhoto(null);
+
+      // Refresh danh sách nhân viên sau khi tạo mới
+      fetchEmployees();
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Lỗi:", error);
 
       // Kiểm tra lỗi trùng lặp email (mã lỗi 11000)
       if (error.response?.data?.error?.code === 11000) {
@@ -91,8 +115,8 @@ const NewEmployee = () => {
           },
         ]);
       } else {
-        // Hiển thị thông báo lỗi hệ thống bằng SweetAlert
-        swal("Vui lòng thử lại sau", "Lỗi hệ thống", "warning");
+        // Hiển thị thông báo lỗi hệ thống bằng Ant Design Message
+        messageApi.error("Thất bại - Vui lòng thử lại sau");
       }
     } finally {
       // Tắt trạng thái loading trong mọi trường hợp
@@ -102,38 +126,45 @@ const NewEmployee = () => {
 
   // Handle enable/disable employee
   const handleToggleStatus = (record) => {
-    console.log("Toggle status:", record);
-    message.success(
-      record.status === "active"
-        ? "Đã vô hiệu hóa nhân viên"
-        : "Đã kích hoạt nhân viên",
+    console.log("Chuyển đổi trạng thái:", record);
+    messageApi.success(
+      record.isActive ? "Đã vô hiệu hóa nhân viên" : "Đã kích hoạt nhân viên",
     );
   };
 
   // Handle edit employee
   const handleEdit = (record) => {
-    console.log("Edit:", record);
-    message.info("Chỉnh sửa thông tin nhân viên");
+    console.log("Chỉnh sửa:", record);
+    messageApi.info("Chỉnh sửa thông tin nhân viên");
   };
 
   // Handle delete employee
   const handleDelete = (record) => {
-    console.log("Delete:", record);
-    message.error("Đã xóa nhân viên khỏi hệ thống");
+    console.log("Xóa:", record);
+    messageApi.error("Đã xóa nhân viên khỏi hệ thống");
   };
 
   const columns = [
     {
       key: "profile",
-      render: (_, record) => (
-        <Avatar
-          size={40}
-          src={record.avatar || null}
-          style={{ backgroundColor: record.avatar ? undefined : "#1890ff" }}
-        >
-          {record.fullName?.charAt(0).toUpperCase()}
-        </Avatar>
-      ),
+      render: (_, obj) => {
+        // Chuẩn hóa URL: loại bỏ dấu / ở đầu nếu có để tránh double slash
+        let profilePath = obj.profile || "bank-images/dummy.jpg";
+        if (profilePath.startsWith("/")) {
+          profilePath = profilePath.slice(1);
+        }
+        const imageUrl = `${import.meta.env.VITE_BASE_URL}/${profilePath}`;
+        return (
+          <Image
+            className="rounded-full object-cover"
+            fallback={`${import.meta.env.VITE_BASE_URL}/bank-images/dummy.jpg`}
+            height={40}
+            src={imageUrl}
+            style={{ borderRadius: "50%" }}
+            width={40}
+          />
+        );
+      },
       title: "Ảnh đại diện",
     },
     {
@@ -157,17 +188,18 @@ const NewEmployee = () => {
       title: "Địa chỉ",
     },
     {
+      fixed: "right",
       key: "action",
       render: (_, record) => (
         <div className="flex gap-2">
-          {record.status === "active" ? (
+          {record.isActive ? (
             <EyeOutlined
-              className="text-blue-500 hover:text-blue-700 text-lg cursor-pointer"
+              className="text-indigo-500 hover:text-indigo-700 text-lg cursor-pointer"
               onClick={() => handleToggleStatus(record)}
             />
           ) : (
             <EyeInvisibleOutlined
-              className="text-gray-500 hover:text-gray-700 text-lg cursor-pointer"
+              className="text-pink-500 hover:text-pink-700 text-lg cursor-pointer"
               onClick={() => handleToggleStatus(record)}
             />
           )}
@@ -185,56 +217,16 @@ const NewEmployee = () => {
     },
   ];
 
-  const dataSource = [
-    {
-      address: "Hà Nội",
-      avatar: "",
-      email: "nguyenvana@email.com",
-      fullName: "Nguyễn Văn A",
-      key: "1",
-      mobile: "0123456789",
-      status: "active",
-    },
-    {
-      address: "TP. Hồ Chí Minh",
-      avatar: "",
-      email: "tranthib@email.com",
-      fullName: "Trần Thị B",
-      key: "2",
-      mobile: "0987654321",
-      status: "active",
-    },
-    {
-      address: "Đà Nẵng",
-      avatar: "",
-      email: "levanc@email.com",
-      fullName: "Lê Văn C",
-      key: "3",
-      mobile: "0369258147",
-      status: "inactive",
-    },
-    {
-      address: "Hải Phòng",
-      avatar: "",
-      email: "phamthid@email.com",
-      fullName: "Phạm Thị D",
-      key: "4",
-      mobile: "0258147369",
-      status: "active",
-    },
-    {
-      address: "Cần Thơ",
-      avatar: "",
-      email: "hoangvane@email.com",
-      fullName: "Hoàng Văn E",
-      key: "5",
-      mobile: "0147258369",
-      status: "inactive",
-    },
-  ];
+  // Thêm thuộc tính key cho mỗi đối tượng dữ liệu
+  const dataWithKeys = allEmployee.map((emp) => ({
+    ...emp,
+    key: emp._id || emp.id,
+  }));
 
   return (
     <AdminLayout>
+      {/* ContextHolder để hiển thị notifications trên toàn ứng dụng */}
+      {contextHolder}
       <div className="gap-3 grid md:grid-cols-3">
         {/* Add New Employee Card */}
         <Card className="md:col-span-1" title="Thêm nhân viên mới">
@@ -300,11 +292,16 @@ const NewEmployee = () => {
         </Card>
 
         {/* Employee List Card */}
-        <Card className="md:col-span-2" title="Danh sách nhân viên">
+        <Card
+          className="md:col-span-2"
+          style={{ overflowX: "auto" }}
+          title="Danh sách nhân viên"
+        >
           <Table
             columns={columns}
-            dataSource={dataSource}
+            dataSource={dataWithKeys}
             pagination={{ pageSize: 5 }}
+            scroll={{ x: "max-content" }}
           />
         </Card>
       </div>

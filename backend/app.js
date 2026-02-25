@@ -1,10 +1,15 @@
 import { createServer } from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
 import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -14,9 +19,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
+// Serve static files từ thư mục public
+app.use(express.static(path.join(__dirname, "public")));
+
 app.use("/api/users", usersRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/send-email", sendEmailRouter);
+
+app.use((_req, res) => {
+  res.status(404).json({
+    message: "API endpoint không tồn tại",
+    success: false,
+  });
+});
 
 const server = createServer(app);
 

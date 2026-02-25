@@ -2,23 +2,33 @@ import axios from "axios";
 
 /**
  * Hàm dùng chung để xử lý dữ liệu
- * Loại bỏ khoảng trắng thừa và chuyển đổi sang chữ thường
- * Lưu ý: Trường password sẽ không bị chuyển đổi case để giữ nguyên bảo mật
+ * Loại bỏ khoảng trắng thừa
+ * Lưu ý:
+ * - Trường password giữ nguyên case để bảo mật
+ * - Trường email chuyển sang chữ thường (chuẩn email)
+ * - Trường fullName và address giữ nguyên case để hiển thị đúng
  * @param {Object} obj - Đối tượng dữ liệu cần xử lý
  * @returns {Object} - Đối tượng đã được làm sạch
  */
 export const trimData = (obj) => {
   const finalObj = {};
 
+  // Danh sách các trường chỉ cần trim, không chuyển case
+  const preserveCaseFields = ["password", "fullName", "address"];
+
   for (const key in obj) {
     if (Object.hasOwn(obj, key)) {
       const value = obj[key];
       if (typeof value === "string") {
-        // Giữ nguyên case cho password để bảo mật
-        if (key === "password") {
+        // Giữ nguyên case cho các trường đặc biệt
+        if (preserveCaseFields.includes(key)) {
           finalObj[key] = value.trim();
-        } else {
+        } else if (key === "email") {
+          // Email chuyển sang chữ thường (chuẩn email)
           finalObj[key] = value.trim().toLowerCase();
+        } else {
+          // Các trường khác giữ nguyên case, chỉ trim
+          finalObj[key] = value.trim();
         }
       } else {
         finalObj[key] = value;

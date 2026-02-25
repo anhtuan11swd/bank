@@ -1,4 +1,4 @@
-import { createNewRecord } from "../services/db.js";
+import { createNewRecord, findAllRecord } from "../services/db.js";
 
 export const createData = async (req, res, schema) => {
   try {
@@ -11,7 +11,7 @@ export const createData = async (req, res, schema) => {
       success: true,
     });
   } catch (error) {
-    console.error("Error creating data:", error);
+    console.error("Lỗi khi tạo dữ liệu:", error);
 
     if (error.code === 11000) {
       return res.status(422).json({
@@ -19,6 +19,25 @@ export const createData = async (req, res, schema) => {
         success: false,
       });
     }
+
+    return res.status(500).json({
+      error: error.message,
+      message: "Lỗi máy chủ nội bộ",
+      success: false,
+    });
+  }
+};
+
+export const getData = async (_req, res, schema) => {
+  try {
+    const dbResponse = await findAllRecord(schema);
+
+    return res.status(200).json({
+      data: dbResponse,
+      message: "Đã tìm thấy bản ghi",
+    });
+  } catch (error) {
+    console.error("Lỗi khi lấy dữ liệu:", error);
 
     return res.status(500).json({
       error: error.message,
