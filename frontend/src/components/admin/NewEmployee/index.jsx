@@ -4,7 +4,16 @@ import {
   EyeInvisibleOutlined,
   EyeOutlined,
 } from "@ant-design/icons";
-import { Button, Card, Form, Image, Input, message, Table } from "antd";
+import {
+  Button,
+  Card,
+  Form,
+  Image,
+  Input,
+  message,
+  Popconfirm,
+  Table,
+} from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { http, trimData } from "../../../modules/modules";
 import AdminLayout from "../../layout/AdminLayout";
@@ -73,6 +82,9 @@ const NewEmployee = () => {
     // Gán ảnh đại diện cho nhân viên
     finalObj.profile = photo || "/bank-images/dummy.jpg";
 
+    // Gán key duy nhất bằng email
+    finalObj.key = finalObj.email;
+
     // Bật trạng thái loading
     setLoading(true);
 
@@ -100,7 +112,7 @@ const NewEmployee = () => {
       EMPForm.resetFields();
       setPhoto(null);
 
-      // Refresh danh sách nhân viên sau khi tạo mới
+      // Làm mới dữ liệu
       fetchEmployees();
     } catch (error) {
       console.error("Lỗi:", error);
@@ -124,12 +136,27 @@ const NewEmployee = () => {
     }
   };
 
-  // Handle enable/disable employee
-  const handleToggleStatus = (record) => {
-    console.log("Chuyển đổi trạng thái:", record);
-    messageApi.success(
-      record.isActive ? "Đã vô hiệu hóa nhân viên" : "Đã kích hoạt nhân viên",
-    );
+  // Hàm cập nhật trạng thái isActive
+  const updateIsActive = async (id, currentIsActive) => {
+    try {
+      // Đảo ngược trạng thái hiện tại
+      const newStatus = !currentIsActive;
+
+      const response = await httpRequest.put(`/api/users/${id}`, {
+        isActive: newStatus,
+      });
+
+      if (response.status === 200) {
+        messageApi.success(
+          newStatus ? "Đã kích hoạt nhân viên" : "Đã vô hiệu hóa nhân viên",
+        );
+        // Làm mới dữ liệu
+        fetchEmployees();
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật trạng thái:", error);
+      messageApi.error("Không thể cập nhật trạng thái");
+    }
   };
 
   // Handle edit employee
@@ -193,15 +220,27 @@ const NewEmployee = () => {
       render: (_, record) => (
         <div className="flex gap-2">
           {record.isActive ? (
-            <EyeOutlined
-              className="text-indigo-500 hover:text-indigo-700 text-lg cursor-pointer"
-              onClick={() => handleToggleStatus(record)}
-            />
+            <Popconfirm
+              cancelText="Không"
+              description="Sau khi cập nhật, bạn có thể cập nhật lại"
+              okText="Có"
+              onCancel={() => messageApi.info("Không có thay đổi nào")}
+              onConfirm={() => updateIsActive(record._id, record.isActive)}
+              title="Bạn có chắc chắn?"
+            >
+              <EyeOutlined className="text-indigo-500 hover:text-indigo-700 text-lg cursor-pointer" />
+            </Popconfirm>
           ) : (
-            <EyeInvisibleOutlined
-              className="text-pink-500 hover:text-pink-700 text-lg cursor-pointer"
-              onClick={() => handleToggleStatus(record)}
-            />
+            <Popconfirm
+              cancelText="Không"
+              description="Sau khi cập nhật, bạn có thể cập nhật lại"
+              okText="Có"
+              onCancel={() => messageApi.info("Không có thay đổi nào")}
+              onConfirm={() => updateIsActive(record._id, record.isActive)}
+              title="Bạn có chắc chắn?"
+            >
+              <EyeInvisibleOutlined className="text-pink-500 hover:text-pink-700 text-lg cursor-pointer" />
+            </Popconfirm>
           )}
           <EditOutlined
             className="text-green-500 hover:text-green-700 text-lg cursor-pointer"
@@ -220,7 +259,7 @@ const NewEmployee = () => {
   // Thêm thuộc tính key cho mỗi đối tượng dữ liệu
   const dataWithKeys = allEmployee.map((emp) => ({
     ...emp,
-    key: emp._id || emp.id,
+    key: emp.key || emp._id || emp.id,
   }));
 
   return (

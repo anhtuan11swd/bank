@@ -1,5 +1,5 @@
 import express from "express";
-import { createData, getData } from "../controller/controller.js";
+import { createData, getData, updateData } from "../controller/controller.js";
 import User from "../model/users.model.js";
 
 const router = express.Router();
@@ -10,6 +10,10 @@ router.post("/", async (req, res) => {
 
 router.get("/", async (req, res) => {
   await getData(req, res, User);
+});
+
+router.put("/:id", async (req, res) => {
+  await updateData(req, res, User);
 });
 
 router.use((_req, res) => {
