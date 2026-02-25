@@ -3,6 +3,7 @@ import axios from "axios";
 /**
  * Hàm dùng chung để xử lý dữ liệu
  * Loại bỏ khoảng trắng thừa và chuyển đổi sang chữ thường
+ * Lưu ý: Trường password sẽ không bị chuyển đổi case để giữ nguyên bảo mật
  * @param {Object} obj - Đối tượng dữ liệu cần xử lý
  * @returns {Object} - Đối tượng đã được làm sạch
  */
@@ -13,7 +14,12 @@ export const trimData = (obj) => {
     if (Object.hasOwn(obj, key)) {
       const value = obj[key];
       if (typeof value === "string") {
-        finalObj[key] = value.trim().toLowerCase();
+        // Giữ nguyên case cho password để bảo mật
+        if (key === "password") {
+          finalObj[key] = value.trim();
+        } else {
+          finalObj[key] = value.trim().toLowerCase();
+        }
       } else {
         finalObj[key] = value;
       }

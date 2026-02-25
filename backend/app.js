@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
+import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
 
@@ -15,6 +16,7 @@ app.use(morgan("dev"));
 
 app.use("/api/users", usersRouter);
 app.use("/api/upload", uploadRouter);
+app.use("/api/send-email", sendEmailRouter);
 
 const server = createServer(app);
 

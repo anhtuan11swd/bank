@@ -59,10 +59,23 @@ const NewEmployee = () => {
       const response = await httpRequest.post("/api/users", finalObj);
       console.log("Response:", response.data);
 
+      // Chỉ gửi email khi tạo user thành công
+      if (response.status === 200 || response.status === 201) {
+        // Chuẩn bị dữ liệu để gửi email
+        const obj = {
+          email: finalObj.email,
+          password: finalObj.password,
+        };
+
+        // Gọi API gửi email thông tin đăng nhập
+        const emailResponse = await httpRequest.post("/api/send-email", obj);
+        console.log("Email Response:", emailResponse.data);
+      }
+
       // Hiển thị thông báo thành công bằng SweetAlert
       swal("Tạo nhân viên thành công", "Thông báo thành công", "success");
 
-      // Đặt lại form và state ảnh sau khi đăng ký thành công
+      // Đặt lại form và state ảnh sau khi hoàn tất
       EMPForm.resetFields();
       setPhoto(null);
     } catch (error) {
