@@ -33,6 +33,9 @@ const NewEmployee = () => {
   // State cho danh sách nhân viên
   const [allEmployee, setAllEmployee] = useState([]);
 
+  // State lưu trữ dữ liệu nhân viên đang chỉnh sửa
+  const [edit, setEdit] = useState(null);
+
   // Sử dụng hook useMessage để tạo messageApi và contextHolder
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -136,6 +139,47 @@ const NewEmployee = () => {
     }
   };
 
+  // Hàm xử lý cập nhật nhân viên
+  const onUpdate = async (values) => {
+    // Làm sạch dữ liệu đầu vào
+    const finalObj = trimData(values);
+
+    // Chỉ thêm ảnh đại diện nếu người dùng tải lên ảnh mới
+    // Nếu không, backend sẽ giữ nguyên ảnh cũ
+    if (photo) {
+      finalObj.profile = photo;
+    }
+
+    // Bật trạng thái loading
+    setLoading(true);
+
+    try {
+      // Gửi yêu cầu cập nhật đến API với ID của nhân viên đang chỉnh sửa
+      const response = await httpRequest.put(
+        `/api/users/${edit._id}`,
+        finalObj,
+      );
+
+      if (response.status === 200) {
+        messageApi.success("Cập nhật nhân viên thành công");
+
+        // Đặt lại form và state sau khi hoàn tất
+        EMPForm.resetFields();
+        setPhoto(null);
+        setEdit(null);
+
+        // Làm mới dữ liệu để hiển thị thay đổi ngay lập tức
+        fetchEmployees();
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      messageApi.error("Không thể cập nhật nhân viên");
+    } finally {
+      // Tắt trạng thái loading trong mọi trường hợp
+      setLoading(false);
+    }
+  };
+
   // Hàm cập nhật trạng thái isActive
   const updateIsActive = async (id, currentIsActive) => {
     try {
@@ -159,10 +203,20 @@ const NewEmployee = () => {
     }
   };
 
-  // Handle edit employee
+  // Hàm xử lý chỉnh sửa nhân viên - đổ dữ liệu vào form
   const handleEdit = (record) => {
-    console.log("Chỉnh sửa:", record);
-    messageApi.info("Chỉnh sửa thông tin nhân viên");
+    // Lưu dữ liệu nhân viên vào state edit
+    setEdit(record);
+    // Tự động điền dữ liệu vào form
+    EMPForm.setFieldsValue({
+      address: record.address,
+      email: record.email,
+      fullName: record.fullName,
+      mobile: record.mobile,
+    });
+    // Cập nhật ảnh đại diện nếu có
+    setPhoto(record.profile);
+    messageApi.success("Đã tải dữ liệu nhân viên vào form chỉnh sửa");
   };
 
   // Hàm xóa nhân viên (async với try-catch)
@@ -254,10 +308,16 @@ const NewEmployee = () => {
               <EyeInvisibleOutlined className="text-pink-500 hover:text-pink-700 text-lg cursor-pointer" />
             </Popconfirm>
           )}
-          <EditOutlined
-            className="text-green-500 hover:text-green-700 text-lg cursor-pointer"
-            onClick={() => handleEdit(record)}
-          />
+          <Popconfirm
+            cancelText="Không"
+            description="Sau khi cập nhật bạn vẫn có thể cập nhật lại"
+            okText="Có"
+            onCancel={() => messageApi.info("Không có thay đổi nào xảy ra")}
+            onConfirm={() => handleEdit(record)}
+            title="Bạn có chắc không?"
+          >
+            <EditOutlined className="text-green-500 hover:text-green-700 text-lg cursor-pointer" />
+          </Popconfirm>
           <Popconfirm
             cancelText="Không"
             description="Sau khi xóa, bạn sẽ không thể khôi phục"
@@ -285,9 +345,16 @@ const NewEmployee = () => {
       {/* ContextHolder để hiển thị notifications trên toàn ứng dụng */}
       {contextHolder}
       <div className="gap-3 grid md:grid-cols-3">
-        {/* Thẻ thêm nhân viên mới */}
-        <Card className="md:col-span-1" title="Thêm nhân viên mới">
-          <Form form={EMPForm} layout="vertical" onFinish={onFinish}>
+        {/* Thẻ thêm/chỉnh sửa nhân viên */}
+        <Card
+          className="md:col-span-1"
+          title={edit ? "Chỉnh sửa nhân viên" : "Thêm nhân viên mới"}
+        >
+          <Form
+            form={EMPForm}
+            layout="vertical"
+            onFinish={edit ? onUpdate : onFinish}
+          >
             <Form.Item label="Ảnh đại diện" name="photo">
               <Input onChange={handleUpload} type="file" />
             </Form.Item>
@@ -327,9 +394,12 @@ const NewEmployee = () => {
               <Form.Item
                 label="Mật khẩu"
                 name="password"
-                rules={[{ message: "Vui lòng nhập mật khẩu", required: true }]}
+                rules={[{ message: "Vui lòng nhập mật khẩu", required: !edit }]}
               >
-                <Input.Password placeholder="Nhập mật khẩu" />
+                <Input.Password
+                  disabled={!!edit}
+                  placeholder={edit ? "Không thể thay đổi" : "Nhập mật khẩu"}
+                />
               </Form.Item>
             </div>
 
@@ -339,12 +409,27 @@ const NewEmployee = () => {
 
             <Button
               className="w-full"
+              danger={!!edit}
               htmlType="submit"
               loading={loading}
               type="primary"
             >
-              Thêm nhân viên
+              {edit ? "Cập nhật nhân viên" : "Thêm nhân viên"}
             </Button>
+
+            {edit && (
+              <Button
+                className="w-full mt-2"
+                onClick={() => {
+                  EMPForm.resetFields();
+                  setPhoto(null);
+                  setEdit(null);
+                  messageApi.info("Đã hủy chỉnh sửa");
+                }}
+              >
+                Hủy chỉnh sửa
+              </Button>
+            )}
           </Form>
         </Card>
 

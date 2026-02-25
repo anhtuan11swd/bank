@@ -25,7 +25,7 @@ export const createNewRecord = async (data, schema) => {
 };
 
 export const updateRecord = async (id, data, schema) => {
-  return await schema.findByIdAndUpdate(id, data, { new: true });
+  return await schema.findByIdAndUpdate(id, data, { returnDocument: "after" });
 };
 
 export const deleteRecord = async (id, schema) => {
