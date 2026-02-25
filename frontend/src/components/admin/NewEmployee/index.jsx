@@ -19,10 +19,38 @@ const NewEmployee = () => {
   // State cho trạng thái loading
   const [loading, setLoading] = useState(false);
 
+  // State cho ảnh đại diện
+  const [photo, setPhoto] = useState(null);
+
+  // Hàm xử lý tải ảnh lên server
+  const handleUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const formData = new FormData();
+      formData.append("photo", file);
+
+      const response = await httpRequest.post("/api/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      setPhoto(response?.data?.data?.path);
+    } catch (error) {
+      console.error("Upload error:", error);
+      message.error("Unable to upload");
+    }
+  };
+
   // Xử lý khi form được submit thành công
   const onFinish = async (values) => {
     const finalObj = trimData(values);
     console.log("Success:", finalObj);
+
+    // Gán ảnh đại diện cho nhân viên
+    finalObj.profile = photo || "/bank-images/dummy.jpg";
 
     // Bật trạng thái loading
     setLoading(true);
@@ -34,8 +62,9 @@ const NewEmployee = () => {
       // Hiển thị thông báo thành công bằng SweetAlert
       swal("Tạo nhân viên thành công", "Thông báo thành công", "success");
 
-      // Đặt lại form sau khi đăng ký thành công
+      // Đặt lại form và state ảnh sau khi đăng ký thành công
       EMPForm.resetFields();
+      setPhoto(null);
     } catch (error) {
       console.error("Error:", error);
 
@@ -198,7 +227,7 @@ const NewEmployee = () => {
         <Card className="md:col-span-1" title="Thêm nhân viên mới">
           <Form form={EMPForm} layout="vertical" onFinish={onFinish}>
             <Form.Item label="Ảnh đại diện" name="photo">
-              <Input type="file" />
+              <Input onChange={handleUpload} type="file" />
             </Form.Item>
 
             <div className="gap-2 grid md:grid-cols-2">

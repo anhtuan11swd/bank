@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
-
+import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
 
 const app = express();
@@ -14,6 +14,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));
 
 app.use("/api/users", usersRouter);
+app.use("/api/upload", uploadRouter);
 
 const server = createServer(app);
 
