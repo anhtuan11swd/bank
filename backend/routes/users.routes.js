@@ -1,29 +1,17 @@
 import express from "express";
 import {
-  createData,
-  deleteData,
-  getData,
-  updateData,
-} from "../controller/controller.js";
-import User from "../model/users.model.js";
+  createUser,
+  deleteUser,
+  getUsers,
+  updateUser,
+} from "../controller/users.controller.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-  await createData(req, res, User);
-});
-
-router.get("/", async (req, res) => {
-  await getData(req, res, User);
-});
-
-router.put("/:id", async (req, res) => {
-  await updateData(req, res, User);
-});
-
-router.delete("/:id", async (req, res) => {
-  await deleteData(req, res, User);
-});
+router.post("/", createUser);
+router.get("/", getUsers);
+router.put("/:id", updateUser);
+router.delete("/:id", deleteUser);
 
 router.use((_req, res) => {
   res.status(404).json({

@@ -1,20 +1,15 @@
 import express from "express";
-import { createData, getData, updateData } from "../controller/controller.js";
-import Branding from "../model/branding.model.js";
+import {
+  createBranding,
+  getBranding,
+  updateBranding,
+} from "../controller/branding.controller.js";
 
 const router = express.Router();
 
-router.post("/", async (req, res) => {
-  await createData(req, res, Branding);
-});
-
-router.get("/", async (req, res) => {
-  await getData(req, res, Branding);
-});
-
-router.put("/:id", async (req, res) => {
-  await updateData(req, res, Branding);
-});
+router.post("/", createBranding);
+router.get("/", getBranding);
+router.put("/:id", updateBranding);
 
 router.use((_req, res) => {
   res.status(404).json({

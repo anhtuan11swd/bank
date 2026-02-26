@@ -21,3 +21,18 @@ const storage = multer.diskStorage({
 
 // Khởi tạo middleware với .single('photo')
 export const upload = multer({ storage });
+
+// Middleware xử lý lỗi Multer
+export const handleMulterError = (fieldName) => {
+  return (req, res, next) => {
+    upload.single(fieldName)(req, res, (err) => {
+      if (err) {
+        return res.status(400).json({
+          message: err.message,
+          success: false,
+        });
+      }
+      next();
+    });
+  };
+};
