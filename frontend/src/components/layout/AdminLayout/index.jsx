@@ -1,4 +1,5 @@
 import {
+  BranchesOutlined,
   DashboardOutlined,
   GiftOutlined,
   MenuFoldOutlined,
@@ -21,6 +22,11 @@ const menuItems = [
     icon: <UserOutlined />,
     key: "/admin/new-employee",
     label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
+  },
+  {
+    icon: <BranchesOutlined />,
+    key: "/admin/branch",
+    label: <Link to="/admin/branch">Chi nhánh</Link>,
   },
   {
     icon: <GiftOutlined />,
