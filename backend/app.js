@@ -6,6 +6,7 @@ import express from "express";
 import morgan from "morgan";
 import branchRouter from "./routes/branch.routes.js";
 import brandingRouter from "./routes/branding.routes.js";
+import currencyRouter from "./routes/currency.routes.js";
 import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
@@ -26,6 +27,7 @@ app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/users", usersRouter);
 app.use("/api/branch", branchRouter);
+app.use("/api/currency", currencyRouter);
 app.use("/api/branding", brandingRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/send-email", sendEmailRouter);

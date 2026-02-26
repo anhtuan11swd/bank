@@ -1,6 +1,7 @@
 import {
   BranchesOutlined,
   DashboardOutlined,
+  DollarCircleOutlined,
   GiftOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
@@ -27,6 +28,11 @@ const menuItems = [
     icon: <BranchesOutlined />,
     key: "/admin/branch",
     label: <Link to="/admin/branch">Chi nhánh</Link>,
+  },
+  {
+    icon: <DollarCircleOutlined />,
+    key: "/admin/currency",
+    label: <Link to="/admin/currency">Tiền tệ</Link>,
   },
   {
     icon: <GiftOutlined />,
