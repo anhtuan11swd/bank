@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import cors from "cors";
 import express from "express";
 import morgan from "morgan";
+import brandingRouter from "./routes/branding.routes.js";
 import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
@@ -23,6 +24,7 @@ app.use(morgan("dev"));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use("/api/users", usersRouter);
+app.use("/api/branding", brandingRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/send-email", sendEmailRouter);
 
