@@ -6,6 +6,7 @@ const { Schema } = mongoose;
 const usersSchema = new Schema(
   {
     address: { type: String },
+    branch: { type: String },
     email: { type: String, unique: true },
     fullName: { type: String },
     isActive: { default: false, type: Boolean },

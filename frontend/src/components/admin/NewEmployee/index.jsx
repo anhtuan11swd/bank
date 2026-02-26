@@ -12,10 +12,12 @@ import {
   Input,
   message,
   Popconfirm,
+  Select,
   Table,
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
-import { http, trimData } from "../../../modules/modules";
+import useSWR from "swr";
+import { fetchData, http, trimData } from "../../../modules/modules";
 import AdminLayout from "../../layout/AdminLayout";
 
 const NewEmployee = () => {
@@ -36,8 +38,34 @@ const NewEmployee = () => {
   // State lưu trữ dữ liệu nhân viên đang chỉnh sửa
   const [edit, setEdit] = useState(null);
 
+  // State lưu trữ danh sách chi nhánh cho Select
+  const [allBranch, setAllBranch] = useState([]);
+
   // Sử dụng hook useMessage để tạo messageApi và contextHolder
   const [messageApi, contextHolder] = message.useMessage();
+
+  // Sử dụng SWR để lấy danh sách chi nhánh với cấu hình tối ưu
+  const { data: branches } = useSWR(
+    "/api/branch",
+    (url) => fetchData(url, httpRequest),
+    {
+      refreshInterval: 30000, // Làm mới dữ liệu mỗi 30 giây
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    },
+  );
+
+  // useEffect xử lý dữ liệu chi nhánh từ SWR
+  useEffect(() => {
+    if (branches) {
+      const formattedBranches = branches.map((item) => ({
+        key: item._id,
+        label: item.branchName,
+        value: item.branchName,
+      }));
+      setAllBranch(formattedBranches);
+    }
+  }, [branches]);
 
   // Hàm lấy danh sách nhân viên từ API
   const fetchEmployees = useCallback(async () => {
@@ -87,6 +115,9 @@ const NewEmployee = () => {
 
     // Gán key duy nhất bằng email
     finalObj.key = finalObj.email;
+
+    // Gán loại người dùng là employee
+    finalObj.userType = "employee";
 
     // Bật trạng thái loading
     setLoading(true);
@@ -210,9 +241,11 @@ const NewEmployee = () => {
     // Tự động điền dữ liệu vào form
     EMPForm.setFieldsValue({
       address: record.address,
+      branch: record.branch,
       email: record.email,
       fullName: record.fullName,
       mobile: record.mobile,
+      userType: record.userType,
     });
     // Cập nhật ảnh đại diện nếu có
     setPhoto(record.profile);
@@ -279,6 +312,32 @@ const NewEmployee = () => {
       dataIndex: "address",
       key: "address",
       title: "Địa chỉ",
+    },
+    {
+      dataIndex: "branch",
+      key: "branch",
+      title: "Chi nhánh",
+    },
+    {
+      dataIndex: "userType",
+      key: "userType",
+      render: (text) => {
+        let colorClass = "text-rose-500"; // Mặc định Customer - đỏ
+        let label = "khách hàng";
+        if (text === "admin") {
+          colorClass = "text-indigo-500"; // Admin - chàm
+          label = "quản trị viên";
+        } else if (text === "employee") {
+          colorClass = "text-green-500"; // Employee - xanh lá
+          label = "nhân viên";
+        }
+        return (
+          <span className={`${colorClass} capitalize font-medium`}>
+            {label}
+          </span>
+        );
+      },
+      title: "Loại người dùng",
     },
     {
       fixed: "right",
@@ -355,6 +414,14 @@ const NewEmployee = () => {
             layout="vertical"
             onFinish={edit ? onUpdate : onFinish}
           >
+            <Form.Item
+              label="Chọn chi nhánh"
+              name="branch"
+              rules={[{ message: "Vui lòng chọn chi nhánh", required: true }]}
+            >
+              <Select options={allBranch} placeholder="Chọn chi nhánh" />
+            </Form.Item>
+
             <Form.Item label="Ảnh đại diện" name="photo">
               <Input onChange={handleUpload} type="file" />
             </Form.Item>

@@ -53,3 +53,14 @@ export const http = (accessToken = null) => {
 
   return axios;
 };
+
+/**
+ * Hàm fetcher cho SWR - lấy dữ liệu từ API
+ * @param {string} url - Đường dẫn API
+ * @param {Object} httpClient - Instance axios từ http()
+ * @returns {Promise<Array>} - Dữ liệu từ response
+ */
+export const fetchData = async (url, httpClient) => {
+  const response = await httpClient.get(url);
+  return response.data?.data || [];
+};
