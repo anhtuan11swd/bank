@@ -2,7 +2,6 @@ import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Input, message, Popconfirm, Table } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { http, trimData } from "../../../modules/modules";
-import AdminLayout from "../../layout/AdminLayout";
 
 const Currency = () => {
   // Khởi tạo http request với cấu hình mặc định
@@ -175,7 +174,7 @@ const Currency = () => {
   }));
 
   return (
-    <AdminLayout>
+    <>
       {/* ContextHolder để hiển thị notifications trên toàn ứng dụng */}
       {contextHolder}
       <div className="gap-3 grid md:grid-cols-3">
@@ -246,7 +245,7 @@ const Currency = () => {
           />
         </Card>
       </div>
-    </AdminLayout>
+    </>
   );
 };
 

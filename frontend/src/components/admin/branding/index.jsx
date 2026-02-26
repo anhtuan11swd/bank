@@ -2,7 +2,6 @@ import { EditOutlined, SaveOutlined, UploadOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Image, Input, message, Upload } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { http, trimData } from "../../../modules/modules";
-import AdminLayout from "../../layout/AdminLayout";
 
 const DUMMY_LOGO = "/bank-images/dummy.jpg";
 
@@ -213,7 +212,7 @@ const Branding = () => {
   };
 
   return (
-    <AdminLayout>
+    <>
       {contextHolder}
       <Card
         extra={
@@ -441,7 +440,7 @@ const Branding = () => {
           </div>
         </Form>
       </Card>
-    </AdminLayout>
+    </>
   );
 };
 

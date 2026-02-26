@@ -1,11 +1,7 @@
 import {
-  BranchesOutlined,
   DashboardOutlined,
-  DollarCircleOutlined,
-  GiftOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
 import { useState } from "react";
@@ -16,32 +12,12 @@ const { Header, Sider, Content } = Layout;
 const menuItems = [
   {
     icon: <DashboardOutlined />,
-    key: "/admin",
-    label: <Link to="/admin">Bảng điều khiển</Link>,
-  },
-  {
-    icon: <UserOutlined />,
-    key: "/admin/new-employee",
-    label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
-  },
-  {
-    icon: <BranchesOutlined />,
-    key: "/admin/branch",
-    label: <Link to="/admin/branch">Chi nhánh</Link>,
-  },
-  {
-    icon: <DollarCircleOutlined />,
-    key: "/admin/currency",
-    label: <Link to="/admin/currency">Tiền tệ</Link>,
-  },
-  {
-    icon: <GiftOutlined />,
-    key: "/admin/branding",
-    label: <Link to="/admin/branding">Thương hiệu</Link>,
+    key: "/employee",
+    label: <Link to="/employee">Bảng điều khiển</Link>,
   },
 ];
 
-const AdminLayout = () => {
+const EmployeeLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const {
@@ -86,4 +62,4 @@ const AdminLayout = () => {
     </Layout>
   );
 };
-export default AdminLayout;
+export default EmployeeLayout;

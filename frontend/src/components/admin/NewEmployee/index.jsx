@@ -3,6 +3,7 @@ import {
   EditOutlined,
   EyeInvisibleOutlined,
   EyeOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import {
   Button,
@@ -18,7 +19,6 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
 import { fetchData, http, trimData } from "../../../modules/modules";
-import AdminLayout from "../../layout/AdminLayout";
 
 const NewEmployee = () => {
   // Khởi tạo http request với cấu hình mặc định
@@ -34,6 +34,9 @@ const NewEmployee = () => {
 
   // State cho danh sách nhân viên
   const [allEmployee, setAllEmployee] = useState([]);
+
+  // State lưu trữ bản sao dữ liệu gốc từ backend để khôi phục khi xóa tìm kiếm
+  const [finalEmployee, setFinalEmployee] = useState([]);
 
   // State lưu trữ dữ liệu nhân viên đang chỉnh sửa
   const [edit, setEdit] = useState(null);
@@ -71,7 +74,9 @@ const NewEmployee = () => {
   const fetchEmployees = useCallback(async () => {
     try {
       const response = await httpRequest.get("/api/users");
-      setAllEmployee(response?.data?.data || []);
+      const employeeData = response?.data?.data || [];
+      setAllEmployee(employeeData);
+      setFinalEmployee(employeeData); // Lưu bản sao dữ liệu gốc cho việc tìm kiếm
     } catch (error) {
       console.error("Lỗi khi lấy danh sách nhân viên:", error);
       messageApi.error("Không thể lấy dữ liệu");
@@ -263,11 +268,44 @@ const NewEmployee = () => {
 
       // Cập nhật lại danh sách nhân viên trên UI mà không cần reload
       setAllEmployee((prev) => prev.filter((emp) => emp._id !== id));
+      setFinalEmployee((prev) => prev.filter((emp) => emp._id !== id)); // Cập nhật cả dữ liệu gốc
     } catch (error) {
       // Hiển thị thông báo lỗi "Unable to delete user" nếu có sự cố
       console.error("Lỗi khi xóa nhân viên:", error);
       messageApi.error("Không thể xóa nhân viên");
     }
+  };
+
+  // Hàm xử lý tìm kiếm nhân viên
+  const onSearch = (e) => {
+    const searchValue = e.target.value.trim().toLowerCase();
+
+    if (!searchValue) {
+      // Nếu ô tìm kiếm trống, khôi phục danh sách đầy đủ
+      setAllEmployee(finalEmployee);
+      return;
+    }
+
+    // Lọc dữ liệu từ finalEmployee theo nhiều trường
+    const filteredData = finalEmployee.filter((emp) => {
+      const fullName = (emp.fullName || "").toLowerCase();
+      const userType = (emp.userType || "").toLowerCase();
+      const email = (emp.email || "").toLowerCase();
+      const branch = (emp.branch || "").toLowerCase();
+      const mobile = (emp.mobile || "").toLowerCase();
+      const address = (emp.address || "").toLowerCase();
+
+      return (
+        fullName.indexOf(searchValue) !== -1 ||
+        userType.indexOf(searchValue) !== -1 ||
+        email.indexOf(searchValue) !== -1 ||
+        branch.indexOf(searchValue) !== -1 ||
+        mobile.indexOf(searchValue) !== -1 ||
+        address.indexOf(searchValue) !== -1
+      );
+    });
+
+    setAllEmployee(filteredData);
   };
 
   const columns = [
@@ -400,7 +438,7 @@ const NewEmployee = () => {
   }));
 
   return (
-    <AdminLayout>
+    <>
       {/* ContextHolder để hiển thị notifications trên toàn ứng dụng */}
       {contextHolder}
       <div className="gap-3 grid md:grid-cols-3">
@@ -503,6 +541,14 @@ const NewEmployee = () => {
         {/* Thẻ danh sách nhân viên */}
         <Card
           className="md:col-span-2"
+          extra={
+            <Input
+              onChange={onSearch}
+              placeholder="Search by all"
+              prefix={<SearchOutlined />}
+              style={{ width: 250 }}
+            />
+          }
           style={{ overflowX: "auto" }}
           title="Danh sách nhân viên"
         >
@@ -514,7 +560,7 @@ const NewEmployee = () => {
           />
         </Card>
       </div>
-    </AdminLayout>
+    </>
   );
 };
 
