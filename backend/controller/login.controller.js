@@ -88,6 +88,51 @@ export const login = async (req, res) => {
 };
 
 /**
+ * Controller xác thực token JWT
+ * @param {Object} req - Request object chứa token trong header Authorization
+ * @param {Object} res - Response object trả về kết quả xác thực
+ */
+export const verifyToken = async (req, res) => {
+  try {
+    // Lấy token từ header Authorization (Bearer token)
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.split(" ")[1];
+
+    // Kiểm tra token có tồn tại không
+    if (!token) {
+      return res.status(401).json({
+        message: "Không tìm thấy token",
+        success: false,
+        valid: false,
+      });
+    }
+
+    // Xác thực token với JWT_SECRET
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Trả về thông tin user từ token
+    res.status(200).json({
+      data: {
+        email: decoded.email,
+        fullName: decoded.fullName,
+        userId: decoded.userId,
+        userType: decoded.userType,
+      },
+      message: "Token hợp lệ",
+      success: true,
+      valid: true,
+    });
+  } catch (_err) {
+    // Token không hợp lệ hoặc đã hết hạn
+    res.status(401).json({
+      message: "Token không hợp lệ hoặc đã hết hạn",
+      success: false,
+      valid: false,
+    });
+  }
+};
+
+/**
  * Xử lý route không tồn tại trong login routes
  */
 export const handleLogin404 = (_req, res) => {

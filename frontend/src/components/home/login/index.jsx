@@ -1,23 +1,52 @@
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
 import { Button, Card, Form, Input, message } from "antd";
+import { useNavigate } from "react-router-dom";
+import Cookies from "universal-cookie";
 import { http, trimData } from "../../../modules/modules.js";
 
+// Khởi tạo instance của Cookies
+const cookies = new Cookies();
+
 const Login = () => {
+  const navigate = useNavigate();
   const [messageAPI, contextHolder] = message.useMessage();
 
   const onFinish = async (values) => {
     try {
       // Làm sạch dữ liệu đầu vào
-      const finalObj = trimData(values);
+      const cleanedData = trimData(values);
 
       // Gửi yêu cầu POST đến endpoint /api/login
-      const response = await http().post("/api/login", finalObj);
+      const response = await http().post("/api/login", cleanedData);
+
+      // Lấy token và userType từ response
+      const { token, data } = response.data;
+      const { userType } = data;
+
+      // Thiết lập thời gian hết hạn cookie (3 ngày)
+      const expires = new Date();
+      expires.setDate(expires.getDate() + 3);
+
+      // Lưu token vào cookie
+      cookies.set("auth-token", token, { expires, path: "/" });
+
+      // Lưu userType vào cookie để phân quyền
+      cookies.set("user-type", userType, { expires, path: "/" });
 
       // Hiển thị thông báo thành công
       messageAPI.success("Đăng nhập thành công");
 
-      // TODO: Lưu token và điều hướng sau khi đăng nhập thành công
-      console.log("Login response:", response.data);
+      // Điều hướng theo vai trò người dùng
+      const userRole = userType?.toLowerCase();
+      if (userRole === "admin") {
+        navigate("/admin");
+      } else if (userRole === "employee") {
+        navigate("/employee");
+      } else if (userRole === "customer") {
+        navigate("/customer");
+      } else {
+        navigate("/");
+      }
     } catch (err) {
       // Hiển thị thông báo lỗi chi tiết từ server
       const errorMessage = err?.response?.data?.message || "Đăng nhập thất bại";

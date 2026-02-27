@@ -11,7 +11,8 @@
     "react-router-dom": "^7.13.1",
     "sweetalert": "^2.1.2",
     "swr": "^2.4.0",
-    "tailwindcss": "^4.2.1"
+    "tailwindcss": "^4.2.1",
+    "universal-cookie": "^8.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.4",
