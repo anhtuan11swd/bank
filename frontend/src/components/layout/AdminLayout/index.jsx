@@ -3,47 +3,71 @@ import {
   DashboardOutlined,
   DollarCircleOutlined,
   GiftOutlined,
+  LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
 import { useState } from "react";
-import { Link, Outlet, useLocation } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
+import Cookies from "universal-cookie";
 
 const { Header, Sider, Content } = Layout;
-
-const menuItems = [
-  {
-    icon: <DashboardOutlined />,
-    key: "/admin",
-    label: <Link to="/admin">Bảng điều khiển</Link>,
-  },
-  {
-    icon: <UserOutlined />,
-    key: "/admin/new-employee",
-    label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
-  },
-  {
-    icon: <BranchesOutlined />,
-    key: "/admin/branch",
-    label: <Link to="/admin/branch">Chi nhánh</Link>,
-  },
-  {
-    icon: <DollarCircleOutlined />,
-    key: "/admin/currency",
-    label: <Link to="/admin/currency">Tiền tệ</Link>,
-  },
-  {
-    icon: <GiftOutlined />,
-    key: "/admin/branding",
-    label: <Link to="/admin/branding">Thương hiệu</Link>,
-  },
-];
 
 const AdminLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const cookies = new Cookies();
+
+  const logoutFunction = () => {
+    sessionStorage.removeItem("user_info");
+    cookies.remove("auth_token");
+    navigate("/");
+  };
+
+  const menuItems = [
+    {
+      icon: <DashboardOutlined />,
+      key: "/admin",
+      label: <Link to="/admin">Bảng điều khiển</Link>,
+    },
+    {
+      icon: <UserOutlined />,
+      key: "/admin/new-employee",
+      label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
+    },
+    {
+      icon: <BranchesOutlined />,
+      key: "/admin/branch",
+      label: <Link to="/admin/branch">Chi nhánh</Link>,
+    },
+    {
+      icon: <DollarCircleOutlined />,
+      key: "/admin/currency",
+      label: <Link to="/admin/currency">Tiền tệ</Link>,
+    },
+    {
+      icon: <GiftOutlined />,
+      key: "/admin/branding",
+      label: <Link to="/admin/branding">Thương hiệu</Link>,
+    },
+    {
+      icon: <LogoutOutlined />,
+      key: "/admin/logout",
+      label: (
+        <button
+          className="font-semibold bg-transparent border-0 p-0 cursor-pointer hover:opacity-80"
+          onClick={logoutFunction}
+          style={{ color: "rgba(255, 255, 255, 0.85)" }}
+          type="button"
+        >
+          Đăng xuất
+        </button>
+      ),
+    },
+  ];
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
