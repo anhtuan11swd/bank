@@ -3,6 +3,7 @@ import {
   createCurrency,
   deleteCurrency,
   getCurrencies,
+  handleCurrency404,
   updateCurrency,
 } from "../controller/currency.controller.js";
 
@@ -13,11 +14,6 @@ router.get("/", getCurrencies);
 router.put("/:id", updateCurrency);
 router.delete("/:id", deleteCurrency);
 
-router.use((_req, res) => {
-  res.status(404).json({
-    message: "Route không tồn tại",
-    success: false,
-  });
-});
+router.use(handleCurrency404);
 
 export default router;

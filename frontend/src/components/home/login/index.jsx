@@ -1,9 +1,28 @@
 import { LockOutlined, UserOutlined } from "@ant-design/icons";
-import { Button, Card, Form, Input } from "antd";
+import { Button, Card, Form, Input, message } from "antd";
+import { http, trimData } from "../../../modules/modules.js";
 
 const Login = () => {
-  const onFinish = (values) => {
-    console.log("Login values:", values);
+  const [messageAPI, contextHolder] = message.useMessage();
+
+  const onFinish = async (values) => {
+    try {
+      // Làm sạch dữ liệu đầu vào
+      const finalObj = trimData(values);
+
+      // Gửi yêu cầu POST đến endpoint /api/login
+      const response = await http().post("/api/login", finalObj);
+
+      // Hiển thị thông báo thành công
+      messageAPI.success("Đăng nhập thành công");
+
+      // TODO: Lưu token và điều hướng sau khi đăng nhập thành công
+      console.log("Login response:", response.data);
+    } catch (err) {
+      // Hiển thị thông báo lỗi chi tiết từ server
+      const errorMessage = err?.response?.data?.message || "Đăng nhập thất bại";
+      messageAPI.error(errorMessage);
+    }
   };
 
   return (
@@ -25,39 +44,44 @@ const Login = () => {
             <p className="text-gray-500">Chào mừng đến với Ngân hàng</p>
           </div>
 
+          {contextHolder}
           <Form
             autoComplete="off"
             layout="vertical"
             name="login"
             onFinish={onFinish}
           >
-            {/* Username */}
+            {/* Email */}
             <Form.Item
-              label="Username"
-              name="username"
+              label="Email"
+              name="email"
               rules={[
                 {
-                  message: "Vui lòng nhập username!",
+                  message: "Vui lòng nhập email!",
                   required: true,
+                },
+                {
+                  message: "Email không hợp lệ!",
+                  type: "email",
                 },
               ]}
             >
-              <Input placeholder="Enter Username" prefix={<UserOutlined />} />
+              <Input placeholder="Nhập email" prefix={<UserOutlined />} />
             </Form.Item>
 
             {/* Password */}
             <Form.Item
-              label="Password"
+              label="Mật khẩu"
               name="password"
               rules={[
                 {
-                  message: "Vui lòng nhập password!",
+                  message: "Vui lòng nhập mật khẩu!",
                   required: true,
                 },
               ]}
             >
               <Input.Password
-                placeholder="Enter Password"
+                placeholder="Nhập mật khẩu"
                 prefix={<LockOutlined />}
               />
             </Form.Item>

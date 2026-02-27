@@ -2,6 +2,7 @@ import express from "express";
 import {
   createBranding,
   getBranding,
+  handleBranding404,
   updateBranding,
 } from "../controller/branding.controller.js";
 
@@ -11,11 +12,6 @@ router.post("/", createBranding);
 router.get("/", getBranding);
 router.put("/:id", updateBranding);
 
-router.use((_req, res) => {
-  res.status(404).json({
-    message: "Route không tồn tại",
-    success: false,
-  });
-});
+router.use(handleBranding404);
 
 export default router;

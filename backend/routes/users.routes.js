@@ -3,6 +3,7 @@ import {
   createUser,
   deleteUser,
   getUsers,
+  handleUsers404,
   updateUser,
 } from "../controller/users.controller.js";
 
@@ -13,11 +14,6 @@ router.get("/", getUsers);
 router.put("/:id", updateUser);
 router.delete("/:id", deleteUser);
 
-router.use((_req, res) => {
-  res.status(404).json({
-    message: "Route không tồn tại",
-    success: false,
-  });
-});
+router.use(handleUsers404);
 
 export default router;

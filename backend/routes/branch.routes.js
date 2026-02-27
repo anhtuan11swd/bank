@@ -3,6 +3,7 @@ import {
   createBranch,
   deleteBranch,
   getBranches,
+  handleBranch404,
   updateBranch,
 } from "../controller/branch.controller.js";
 
@@ -13,11 +14,6 @@ router.get("/", getBranches);
 router.put("/:id", updateBranch);
 router.delete("/:id", deleteBranch);
 
-router.use((_req, res) => {
-  res.status(404).json({
-    message: "Route không tồn tại",
-    success: false,
-  });
-});
+router.use(handleBranch404);
 
 export default router;
