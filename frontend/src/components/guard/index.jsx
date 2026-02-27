@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules.js";
+import Loader from "../loader/index.jsx";
 
 // Khởi tạo instance của Cookies
 const cookies = new Cookies();
@@ -16,6 +17,7 @@ const cookies = new Cookies();
 const Guard = ({ endPoint, role }) => {
   const [authorized, setAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [_userType, setUserType] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,20 +25,12 @@ const Guard = ({ endPoint, role }) => {
       try {
         // Lấy token từ cookie
         const token = cookies.get("auth-token");
-        const userType = cookies.get("user-type");
 
         // Kiểm tra token có tồn tại không
         if (!token) {
           setAuthorized(false);
           setIsLoading(false);
           navigate("/");
-          return;
-        }
-
-        // Kiểm tra vai trò người dùng có khớp không (nếu có yêu cầu role)
-        if (role && userType && userType.toLowerCase() !== role.toLowerCase()) {
-          setAuthorized(false);
-          setIsLoading(false);
           return;
         }
 
@@ -48,9 +42,11 @@ const Guard = ({ endPoint, role }) => {
           const userData = response.data.data;
           sessionStorage.setItem("userInfo", JSON.stringify(userData));
 
-          // Kiểm tra vai trò từ server có khớp không (nếu có yêu cầu role)
+          // Trích xuất userType từ dữ liệu server trả về
           const roleFromServer = userData?.userType;
+          setUserType(roleFromServer);
 
+          // Kiểm tra vai trò từ server có khớp không (nếu có yêu cầu role)
           if (
             !role ||
             (roleFromServer &&
@@ -58,7 +54,9 @@ const Guard = ({ endPoint, role }) => {
           ) {
             setAuthorized(true);
           } else {
+            // Sai quyền - chuyển về trang chủ
             setAuthorized(false);
+            navigate("/");
           }
         } else {
           setAuthorized(false);
@@ -66,6 +64,7 @@ const Guard = ({ endPoint, role }) => {
         setIsLoading(false);
       } catch {
         setAuthorized(false);
+        setUserType(null);
         setIsLoading(false);
       }
     };
@@ -75,11 +74,7 @@ const Guard = ({ endPoint, role }) => {
 
   // Hiển thị loading trong khi đang kiểm tra
   if (isLoading) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <div className="text-lg text-gray-600">Đang xác thực...</div>
-      </div>
-    );
+    return <Loader />;
   }
 
   // Nếu không xác thực được, chuyển hướng về trang chủ
