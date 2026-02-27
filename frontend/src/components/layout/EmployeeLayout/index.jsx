@@ -1,4 +1,5 @@
 import {
+  AccountBookOutlined,
   DashboardOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -29,6 +30,11 @@ const EmployeeLayout = () => {
       icon: <DashboardOutlined />,
       key: "/employee",
       label: <Link to="/employee">Bảng điều khiển</Link>,
+    },
+    {
+      icon: <AccountBookOutlined />,
+      key: "/employee/new-account",
+      label: <Link to="/employee/new-account">Mở tài khoản mới</Link>,
     },
     {
       icon: <LogoutOutlined />,
