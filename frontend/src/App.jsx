@@ -20,10 +20,7 @@ function App() {
         <Route element={<Login />} path="/login" />
 
         {/* ========== Start Admin Related Routes ========== */}
-        <Route
-          element={<Guard endPoint="/api/login/verify-token" />}
-          path="/admin"
-        >
+        <Route element={<Guard endPoint="/api/verify-token" />} path="/admin">
           <Route element={<AdminLayout />}>
             <Route element={<Dashboard />} index />
             <Route element={<NewEmployee />} path="new-employee" />
@@ -37,7 +34,7 @@ function App() {
 
         {/* ========== Start Employee Related Routes ========== */}
         <Route
-          element={<Guard endPoint="/api/login/verify-token" />}
+          element={<Guard endPoint="/api/verify-token" />}
           path="/employee"
         >
           <Route element={<EmployeeLayout />}>

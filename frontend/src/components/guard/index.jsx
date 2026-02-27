@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useNavigate } from "react-router-dom";
 import Cookies from "universal-cookie";
 import { http } from "../../modules/modules.js";
 
@@ -14,69 +14,64 @@ const cookies = new Cookies();
  * @param {string} props.role - Vai trò yêu cầu để truy cập (admin, employee)
  */
 const Guard = ({ endPoint, role }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authorized, setAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const authenticateToken = async () => {
+    const verifyToken = async () => {
       try {
         // Lấy token từ cookie
         const token = cookies.get("auth-token");
         const userType = cookies.get("user-type");
 
-        console.log("Guard - Token:", token);
-        console.log("Guard - Endpoint:", endPoint);
-        console.log("Guard - Role:", role);
-        console.log("Guard - UserType từ cookie:", userType);
-
         // Kiểm tra token có tồn tại không
         if (!token) {
-          console.log(
-            "Guard - Không tìm thấy token, chuyển hướng về trang chủ",
-          );
-          setIsAuthenticated(false);
+          setAuthorized(false);
           setIsLoading(false);
+          navigate("/");
           return;
         }
 
         // Kiểm tra vai trò người dùng có khớp không (nếu có yêu cầu role)
         if (role && userType && userType.toLowerCase() !== role.toLowerCase()) {
-          console.log("Guard - Vai trò không khớp, chuyển hướng về trang chủ");
-          setIsAuthenticated(false);
+          setAuthorized(false);
           setIsLoading(false);
           return;
         }
 
-        // Gọi API xác thực token với server
-        const response = await http(token).post(endPoint);
-        console.log("Guard - Kết quả xác thực:", response.data);
+        // Gọi API xác thực token với server bằng phương thức GET
+        const response = await http(token).get(endPoint);
 
-        if (response.data.success && response.data.valid) {
+        if (response.data.success && response.data.isVerified) {
+          // Lưu thông tin người dùng vào sessionStorage dưới dạng JSON
+          const userData = response.data.data;
+          sessionStorage.setItem("userInfo", JSON.stringify(userData));
+
           // Kiểm tra vai trò từ server có khớp không (nếu có yêu cầu role)
-          const roleFromServer = response.data.data?.userType;
+          const roleFromServer = userData?.userType;
+
           if (
             !role ||
             (roleFromServer &&
               roleFromServer.toLowerCase() === role.toLowerCase())
           ) {
-            setIsAuthenticated(true);
+            setAuthorized(true);
           } else {
-            console.log("Guard - Vai trò từ server không khớp");
-            setIsAuthenticated(false);
+            setAuthorized(false);
           }
         } else {
-          setIsAuthenticated(false);
+          setAuthorized(false);
         }
         setIsLoading(false);
-      } catch (err) {
-        console.error("Guard - Lỗi xác thực:", err);
-        setIsAuthenticated(false);
+      } catch {
+        setAuthorized(false);
         setIsLoading(false);
       }
     };
 
-    authenticateToken();
-  }, [endPoint, role]);
+    verifyToken();
+  }, [endPoint, role, navigate]);
 
   // Hiển thị loading trong khi đang kiểm tra
   if (isLoading) {
@@ -88,7 +83,7 @@ const Guard = ({ endPoint, role }) => {
   }
 
   // Nếu không xác thực được, chuyển hướng về trang chủ
-  if (!isAuthenticated) {
+  if (!authorized) {
     return <Navigate replace to="/" />;
   }
 

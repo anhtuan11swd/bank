@@ -11,6 +11,7 @@ import loginRouter from "./routes/login.routes.js";
 import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
+import verifyRouter from "./routes/verify.routes.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ app.use("/api/currency", currencyRouter);
 app.use("/api/branding", brandingRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/send-email", sendEmailRouter);
+app.use("/api/verify-token", verifyRouter);
 
 app.use((_req, res) => {
   res.status(404).json({
