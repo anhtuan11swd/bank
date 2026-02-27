@@ -1,38 +1,18 @@
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import multer from "multer";
+import { upload } from "../services/upload.service.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// Cấu hình Disk Storage
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => {
-    // Lưu ảnh vào thư mục ./public/bank-images
-    const uploadPath = path.join(__dirname, "..", "public", "bank-images");
-    cb(null, uploadPath);
-  },
-  filename: (_req, file, cb) => {
-    // Tạo tên tệp duy nhất: timestamp + phần mở rộng gốc
-    const ext = path.extname(file.originalname);
-    cb(null, Date.now() + ext);
-  },
-});
-
-// Khởi tạo middleware với .single('photo')
-export const upload = multer({ storage });
-
-// Middleware xử lý lỗi Multer
-export const handleMulterError = (fieldName) => {
-  return (req, res, next) => {
-    upload.single(fieldName)(req, res, (err) => {
-      if (err) {
-        return res.status(400).json({
-          message: err.message,
-          success: false,
-        });
-      }
-      next();
-    });
-  };
+/**
+ * Middleware xử lý upload file với error handling
+ * Sử dụng upload.single('file') từ service và bắt lỗi Multer
+ */
+export const handleUpload = (req, res, next) => {
+  upload.single("file")(req, res, (err) => {
+    if (err) {
+      // Trả về lỗi dạng JSON (ví dụ: "No folder name provided")
+      return res.status(400).json({
+        message: err.message,
+        success: false,
+      });
+    }
+    next();
+  });
 };

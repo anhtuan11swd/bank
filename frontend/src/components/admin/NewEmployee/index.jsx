@@ -18,7 +18,12 @@ import {
 } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import useSWR from "swr";
-import { fetchData, http, trimData } from "../../../modules/modules";
+import {
+  fetchData,
+  http,
+  trimData,
+  uploadFile,
+} from "../../../modules/modules";
 
 const NewEmployee = () => {
   // Khởi tạo http request với cấu hình mặc định
@@ -94,19 +99,20 @@ const NewEmployee = () => {
     if (!file) return;
 
     try {
-      const formData = new FormData();
-      formData.append("photo", file);
+      // Sử dụng hàm uploadFile từ modules với folderName = "employee_photo"
+      const result = await uploadFile(file, "employee_photo", httpRequest);
 
-      const response = await httpRequest.post("/api/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-
-      setPhoto(response?.data?.data?.path);
+      if (result.success) {
+        setPhoto(result.data.path);
+        messageApi.success("Tải ảnh lên thành công");
+      } else {
+        messageApi.error(result.message || "Tải lên thất bại");
+      }
     } catch (error) {
       console.error("Lỗi khi tải lên:", error);
-      messageApi.error("Thất bại - Không thể tải lên");
+      messageApi.error(
+        error.response?.data?.message || "Thất bại - Không thể tải lên",
+      );
     }
   };
 
@@ -116,7 +122,7 @@ const NewEmployee = () => {
     console.log("Thành công:", finalObj);
 
     // Gán ảnh đại diện cho nhân viên
-    finalObj.profile = photo || "/bank-images/dummy.jpg";
+    finalObj.profile = photo || "/dummy.jpg";
 
     // Gán key duy nhất bằng email
     finalObj.key = finalObj.email;
@@ -313,7 +319,7 @@ const NewEmployee = () => {
       key: "profile",
       render: (_, obj) => {
         // Chuẩn hóa URL: loại bỏ dấu / ở đầu nếu có để tránh double slash
-        let profilePath = obj.profile || "bank-images/dummy.jpg";
+        let profilePath = obj.profile || "dummy.jpg";
         if (profilePath.startsWith("/")) {
           profilePath = profilePath.slice(1);
         }
@@ -321,7 +327,7 @@ const NewEmployee = () => {
         return (
           <Image
             className="rounded-full object-cover"
-            fallback={`${import.meta.env.VITE_BASE_URL}/bank-images/dummy.jpg`}
+            fallback={`${import.meta.env.VITE_BASE_URL}/dummy.jpg`}
             height={40}
             src={imageUrl}
             style={{ borderRadius: "50%" }}

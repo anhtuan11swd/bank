@@ -3,7 +3,7 @@ import { Button, Card, Form, Image, Input, message, Upload } from "antd";
 import { useCallback, useEffect, useState } from "react";
 import { http, trimData } from "../../../modules/modules";
 
-const DUMMY_LOGO = "/bank-images/dummy.jpg";
+const DUMMY_LOGO = "/dummy.jpg";
 
 const Branding = () => {
   const [bankForm] = Form.useForm();
@@ -133,7 +133,7 @@ const Branding = () => {
       fullName: finalObj.adminFullName,
       isActive: true,
       password: finalObj.adminPassword,
-      profile: "bank-images/dummy.jpg",
+      profile: "dummy.jpg",
       userType: "admin",
     };
 

@@ -64,3 +64,27 @@ export const fetchData = async (url, httpClient) => {
   const response = await httpClient.get(url);
   return response.data?.data || [];
 };
+
+/**
+ * Hàm upload file lên server với thư mục động
+ * @param {File} file - File cần upload
+ * @param {string} folderName - Tên thư mục đích (ví dụ: "employee_photo", "signature")
+ * @param {Object} httpClient - Instance axios từ http()
+ * @returns {Promise<Object>} - Dữ liệu response từ server
+ */
+export const uploadFile = async (file, folderName, httpClient) => {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const response = await httpClient.post(
+    `/api/upload?folderName=${folderName}`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    },
+  );
+
+  return response.data;
+};

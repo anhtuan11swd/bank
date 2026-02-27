@@ -1,9 +1,12 @@
 import express from "express";
 import { uploadFile } from "../controller/upload.controller.js";
-import { handleMulterError } from "../middlewares/upload.middleware.js";
+import { handleUpload } from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
-router.post("/", handleMulterError("photo"), uploadFile);
+// POST /api/upload - Upload file với field name 'file'
+// Query parameter: ?folderName=ten-thu-muc (ví dụ: ?folderName=photo)
+// Middleware handleUpload sử dụng upload.single('file') từ service
+router.post("/", handleUpload, uploadFile);
 
 export default router;

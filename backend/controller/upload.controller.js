@@ -1,7 +1,10 @@
-import path from "node:path";
-
+/**
+ * Controller xử lý upload file
+ * Trả về thông tin file và đường dẫn để Front-end hiển thị
+ */
 export const uploadFile = async (req, res) => {
   try {
+    // Kiểm tra nếu không có file được tải lên
     if (!req.file) {
       return res.status(400).json({
         message: "Không có tệp nào được tải lên",
@@ -10,19 +13,17 @@ export const uploadFile = async (req, res) => {
     }
 
     const { filename, originalname, mimetype, size } = req.file;
-    const _uploadPath = path.join(
-      process.cwd(),
-      "public",
-      "bank-images",
-      filename,
-    );
+    const { folderName } = req.query;
+
+    // Đường dẫn file để truy cập từ browser: /{folderName}/{filename}
+    const filePath = `/${folderName}/${filename}`;
 
     return res.status(200).json({
       data: {
         filename,
         mimetype,
         originalname,
-        path: `/bank-images/${filename}`,
+        path: filePath,
         size,
       },
       message: "Tệp đã được tải lên thành công",
