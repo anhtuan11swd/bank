@@ -2,16 +2,17 @@ import axios from "axios";
 
 /**
  * Hàm dùng chung để xử lý dữ liệu
- * Loại bỏ khoảng trắng thừa
+ * Loại bỏ khoảng trắng thừa và chuẩn hóa kiểu dữ liệu
  * Lưu ý:
  * - Trường password giữ nguyên case để bảo mật
  * - Trường email chuyển sang chữ thường (chuẩn email)
  * - Trường fullName và address giữ nguyên case để hiển thị đúng
+ * - Xử lý cả số và boolean bằng cách chuyển sang chuỗi
  * @param {Object} obj - Đối tượng dữ liệu cần xử lý
  * @returns {Object} - Đối tượng đã được làm sạch
  */
 export const trimData = (obj) => {
-  const finalObj = {};
+  const finalObject = {};
 
   // Danh sách các trường chỉ cần trim, không chuyển case
   const preserveCaseFields = ["password", "fullName", "address"];
@@ -19,24 +20,29 @@ export const trimData = (obj) => {
   for (const key in obj) {
     if (Object.hasOwn(obj, key)) {
       const value = obj[key];
+
       if (typeof value === "string") {
-        // Giữ nguyên case cho các trường đặc biệt
+        // Chuỗi: trim và xử lý case
         if (preserveCaseFields.includes(key)) {
-          finalObj[key] = value.trim();
+          finalObject[key] = value.trim();
         } else if (key === "email") {
           // Email chuyển sang chữ thường (chuẩn email)
-          finalObj[key] = value.trim().toLowerCase();
+          finalObject[key] = value.trim().toLowerCase();
         } else {
           // Các trường khác giữ nguyên case, chỉ trim
-          finalObj[key] = value.trim();
+          finalObject[key] = value.trim();
         }
+      } else if (typeof value === "number" || typeof value === "boolean") {
+        // Số hoặc boolean: chuyển sang chuỗi
+        finalObject[key] = value.toString();
       } else {
-        finalObj[key] = value;
+        // Các kiểu khác (null, object, array...): giữ nguyên
+        finalObject[key] = value;
       }
     }
   }
 
-  return finalObj;
+  return finalObject;
 };
 
 /**

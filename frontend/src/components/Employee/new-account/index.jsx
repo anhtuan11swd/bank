@@ -6,10 +6,18 @@ import {
   Form,
   Input,
   Modal,
+  message,
   Select,
   Table,
 } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
+import {
+  fetchData,
+  http,
+  trimData,
+  uploadFile,
+} from "../../../modules/modules.js";
 
 const NewAccount = () => {
   // State cho danh sách tài khoản
@@ -22,6 +30,37 @@ const NewAccount = () => {
 
   // Khởi tạo form
   const [accountForm] = Form.useForm();
+
+  // Khởi tạo Message API
+  const [messageApi, contextHolder] = message.useMessage();
+
+  // State quản lý trạng thái tải và tệp
+  const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState(null);
+  const [signature, setSignature] = useState(null);
+  const [document, setDocument] = useState(null);
+  const [number, setNumber] = useState(0);
+
+  // Lấy http client
+  const httpRequest = http();
+
+  // Fetch dữ liệu branding để lấy số tài khoản cơ sở
+  const { data: brandings } = useSWR(
+    "/api/branding",
+    (url) => fetchData(url, httpRequest),
+    {
+      revalidateOnFocus: false,
+    },
+  );
+
+  // Cập nhật số tài khoản động khi có dữ liệu branding
+  useEffect(() => {
+    if (brandings?.data?.bankAccountNumber) {
+      const baseNumber = Number(brandings.data.bankAccountNumber);
+      const newNumber = baseNumber + number + 1;
+      accountForm.setFieldValue("accountNumber", String(newNumber));
+    }
+  }, [brandings, number, accountForm]);
 
   // Xử lý tìm kiếm
   const handleSearch = (e) => {
@@ -52,10 +91,121 @@ const NewAccount = () => {
     setFilteredList(filtered);
   };
 
+  // Xử lý tải ảnh khách hàng
+  const handlePhoto = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const result = await uploadFile(file, "customer-photo", httpRequest);
+
+      if (result.success) {
+        setPhoto(result.filePath);
+        messageApi.success("Tải ảnh lên thành công");
+      } else {
+        messageApi.error(result.message || "Tải ảnh lên thất bại");
+      }
+    } catch (error) {
+      messageApi.error(
+        error.response?.data?.message || "Thất bại - Không thể tải ảnh lên",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý tải chữ ký
+  const handleSignature = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const result = await uploadFile(file, "customer-signature", httpRequest);
+
+      if (result.success) {
+        setSignature(result.filePath);
+        messageApi.success("Tải chữ ký lên thành công");
+      } else {
+        messageApi.error(result.message || "Tải chữ ký lên thất bại");
+      }
+    } catch (error) {
+      messageApi.error(
+        error.response?.data?.message || "Thất bại - Không thể tải chữ ký lên",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Xử lý tải tài liệu
+  const handleDocument = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setLoading(true);
+      const result = await uploadFile(file, "customer-document", httpRequest);
+
+      if (result.success) {
+        setDocument(result.filePath);
+        messageApi.success("Tải tài liệu lên thành công");
+      } else {
+        messageApi.error(result.message || "Tải tài liệu lên thất bại");
+      }
+    } catch (error) {
+      messageApi.error(
+        error.response?.data?.message ||
+          "Thất bại - Không thể tải tài liệu lên",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Xử lý khi submit form
-  const onFinish = (values) => {
-    console.log("Dữ liệu biểu mẫu:", values);
-    // Xử lý lưu dữ liệu tại đây
+  const onFinish = async (values) => {
+    try {
+      setLoading(true);
+
+      // Chuẩn hóa dữ liệu đầu vào
+      const finalObj = trimData(values);
+
+      // Đính kèm đường dẫn tệp tin (sử dụng ảnh mặc định nếu chưa tải lên)
+      finalObj.profile = photo || "bank-images/dummy.jpg";
+      finalObj.signature = signature || "bank-images/dummy.jpg";
+      finalObj.document = document || "bank-images/dummy.jpg";
+
+      // Thiết lập các thuộc tính định danh
+      finalObj.userType = "customer";
+      finalObj.key = finalObj.email;
+
+      // TODO: Gửi dữ liệu lên server khi API sẵn sàng
+      // const response = await httpRequest.post("/api/users", finalObj);
+
+      // Kiểm tra dữ liệu trong console
+      console.log("Dữ liệu tài khoản mới:", finalObj);
+
+      // Hiển thị thông báo thành công
+      messageApi.success("Tài khoản đã được tạo");
+
+      // Tăng số tài khoản cho lần tiếp theo
+      setNumber((prev) => prev + 1);
+
+      // Reset form và các state
+      accountForm.resetFields();
+      setPhoto(null);
+      setSignature(null);
+      setDocument(null);
+      setAccountModel(false);
+    } catch (error) {
+      messageApi.error(
+        error.response?.data?.message || "Thất bại - Vui lòng thử lại sau",
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Định nghĩa các cột cho bảng
@@ -173,6 +323,7 @@ const NewAccount = () => {
 
   return (
     <div className="p-6">
+      {contextHolder}
       <Card
         extra={
           <div className="flex items-center gap-x-3">
@@ -222,7 +373,7 @@ const NewAccount = () => {
                 { message: "Vui lòng nhập số tài khoản", required: true },
               ]}
             >
-              <Input placeholder="Nhập số tài khoản" />
+              <Input disabled placeholder="Số tài khoản tự động" />
             </Form.Item>
 
             {/* Họ tên */}
@@ -315,17 +466,17 @@ const NewAccount = () => {
           <div className="grid md:grid-cols-3 gap-x-3">
             {/* Tải ảnh */}
             <Form.Item label="Ảnh" name="photo">
-              <Input type="file" />
+              <Input onChange={handlePhoto} type="file" />
             </Form.Item>
 
             {/* Tải chữ ký */}
             <Form.Item label="Chữ ký" name="signature">
-              <Input type="file" />
+              <Input onChange={handleSignature} type="file" />
             </Form.Item>
 
             {/* Tải tài liệu */}
             <Form.Item label="Tài liệu" name="document">
-              <Input type="file" />
+              <Input onChange={handleDocument} type="file" />
             </Form.Item>
           </div>
 
@@ -343,6 +494,7 @@ const NewAccount = () => {
             <Button
               className="!text-white font-bold"
               htmlType="submit"
+              loading={loading}
               type="primary"
             >
               Lưu
