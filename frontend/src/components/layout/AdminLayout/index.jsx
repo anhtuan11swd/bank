@@ -6,6 +6,7 @@ import {
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  UserAddOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
@@ -37,6 +38,11 @@ const AdminLayout = () => {
       icon: <UserOutlined />,
       key: "/admin/new-employee",
       label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
+    },
+    {
+      icon: <UserAddOutlined />,
+      key: "/admin/new-account",
+      label: <Link to="/admin/new-account">Mở tài khoản mới</Link>,
     },
     {
       icon: <BranchesOutlined />,

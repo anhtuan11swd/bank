@@ -81,8 +81,33 @@ const NewAccount = () => {
   // Cập nhật danh sách tài khoản khi có dữ liệu customers
   useEffect(() => {
     if (customers) {
-      setAllCustomer(customers);
-      setFinalCustomer(customers);
+      // Lấy thông tin người dùng từ sessionStorage
+      const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}");
+      const userBranch = userInfo?.branch || "";
+
+      console.log("Branch Filtering - User Info:", {
+        branch: userBranch,
+        totalCustomers: customers.length,
+        userType: userInfo?.userType,
+      });
+
+      // Lọc khách hàng theo chi nhánh của người dùng đang đăng nhập
+      let filteredCustomers = customers;
+
+      // Nếu không phải admin, chỉ hiển thị khách hàng cùng chi nhánh
+      if (userInfo?.userType !== "admin" && userBranch) {
+        filteredCustomers = customers.filter(
+          (customer) => customer.branch === userBranch,
+        );
+        console.log(
+          `Đã lọc: ${filteredCustomers.length}/${customers.length} khách hàng thuộc chi nhánh ${userBranch}`,
+        );
+      } else if (userInfo?.userType === "admin") {
+        console.log("Admin: Hiển thị tất cả khách hàng");
+      }
+
+      setAllCustomer(filteredCustomers);
+      setFinalCustomer(filteredCustomers);
     }
   }, [customers]);
 
@@ -718,7 +743,18 @@ const NewAccount = () => {
       key: "address",
       title: "Địa chỉ",
     },
-    // 11. Người tạo (Created By)
+    // 11. Chi nhánh (Branch)
+    {
+      dataIndex: "branch",
+      key: "branch_column",
+      render: (branch) => (
+        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+          {branch || "-"}
+        </span>
+      ),
+      title: "Chi nhánh",
+    },
+    // 12. Người tạo (Created By)
     {
       dataIndex: "createdBy",
       key: "createdBy_column",
@@ -727,7 +763,7 @@ const NewAccount = () => {
       ),
       title: "Người tạo",
     },
-    // 12. Số dư (finalBalance)
+    // 13. Số dư (finalBalance)
     {
       dataIndex: "finalBalance",
       key: "finalBalance_column",
@@ -738,7 +774,7 @@ const NewAccount = () => {
       ),
       title: "Số dư",
     },
-    // 13. Trạng thái (có thể click để thay đổi)
+    // 14. Trạng thái (có thể click để thay đổi)
     {
       dataIndex: "isActive",
       key: "isActive",
@@ -759,7 +795,7 @@ const NewAccount = () => {
       ),
       title: "Trạng thái",
     },
-    // 14. Hành động
+    // 15. Hành động
     {
       fixed: "right",
       key: "action",
@@ -793,6 +829,11 @@ const NewAccount = () => {
   // Dữ liệu hiển thị
   const displayData = allCustomer || [];
 
+  // Lấy thông tin người dùng để hiển thị
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}");
+  const isAdmin = userInfo?.userType === "admin";
+  const userBranch = userInfo?.branch || "";
+
   // Options cho Select
   const genderOptions = [
     { label: "Nam", value: "male" },
@@ -808,6 +849,45 @@ const NewAccount = () => {
   return (
     <div className="p-6">
       {contextHolder}
+
+      {/* Thông tin phạm vi dữ liệu */}
+      {!isAdmin && userBranch && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-blue-600 font-semibold">📍 Chi nhánh:</span>
+            <span className="text-gray-800 font-medium">{userBranch}</span>
+            <span className="text-gray-500 text-sm ml-4">
+              (Bạn chỉ xem được khách hàng thuộc chi nhánh này)
+            </span>
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            Tổng số khách hàng:{" "}
+            <span className="font-semibold text-blue-600">
+              {displayData.length}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {isAdmin && (
+        <div className="mb-4 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg shadow-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-green-600 font-semibold">
+              👑 Quản trị viên:
+            </span>
+            <span className="text-gray-800 font-medium">
+              Xem tất cả chi nhánh
+            </span>
+          </div>
+          <div className="mt-2 text-sm text-gray-600">
+            Tổng số khách hàng:{" "}
+            <span className="font-semibold text-green-600">
+              {displayData.length}
+            </span>
+          </div>
+        </div>
+      )}
+
       <Card
         extra={
           <div className="flex items-center gap-x-3">

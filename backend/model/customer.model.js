@@ -19,6 +19,7 @@ const customerSchema = new Schema(
     mobile: { type: String },
     profile: { type: String },
     signature: { type: String },
+    userId: { ref: "user", type: mongoose.Schema.Types.ObjectId },
     userType: { type: String },
   },
   { timestamps: true },

@@ -79,7 +79,13 @@ const NewEmployee = () => {
   const fetchEmployees = useCallback(async () => {
     try {
       const response = await httpRequest.get("/api/users");
-      const employeeData = response?.data?.data || [];
+      const allUsers = response?.data?.data || [];
+
+      // Lọc chỉ lấy employee và admin, loại bỏ customer
+      const employeeData = allUsers.filter(
+        (user) => user.userType === "employee" || user.userType === "admin",
+      );
+
       setAllEmployee(employeeData);
       setFinalEmployee(employeeData); // Lưu bản sao dữ liệu gốc cho việc tìm kiếm
     } catch (error) {

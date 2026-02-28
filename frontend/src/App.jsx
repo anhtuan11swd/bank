@@ -10,7 +10,7 @@ const Branding = lazy(() => import("./components/admin/branding"));
 const Currency = lazy(() => import("./components/admin/Currency"));
 const NewEmployee = lazy(() => import("./components/admin/NewEmployee"));
 const EmployeeDashboard = lazy(() => import("./components/Employee"));
-const NewAccount = lazy(() => import("./components/Employee/new-account"));
+const NewAccount = lazy(() => import("./components/shared/new-account"));
 const HomePage = lazy(() => import("./components/home"));
 const Login = lazy(() => import("./components/home/login"));
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
@@ -30,6 +30,7 @@ function App() {
             <Route element={<AdminLayout />}>
               <Route element={<Dashboard />} index />
               <Route element={<NewEmployee />} path="new-employee" />
+              <Route element={<NewAccount />} path="new-account" />
               <Route element={<Branch />} path="branch" />
               <Route element={<Currency />} path="currency" />
               <Route element={<Branding />} path="branding" />
