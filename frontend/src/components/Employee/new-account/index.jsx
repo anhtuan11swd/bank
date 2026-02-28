@@ -18,6 +18,8 @@ import {
   Select,
   Table,
 } from "antd";
+import dayjs from "dayjs";
+import customParseFormat from "dayjs/plugin/customParseFormat";
 import { useEffect, useState } from "react";
 import useSWR, { mutate } from "swr";
 import {
@@ -27,6 +29,9 @@ import {
   uploadFile,
 } from "../../../modules/modules.js";
 
+// Extend dayjs với plugin customParseFormat
+dayjs.extend(customParseFormat);
+
 const NewAccount = () => {
   // State cho danh sách tài khoản
   const [allCustomer, setAllCustomer] = useState(null);
@@ -35,6 +40,9 @@ const NewAccount = () => {
 
   // State điều khiển hiển thị Modal
   const [accountModel, setAccountModel] = useState(false);
+
+  // State cho chức năng chỉnh sửa
+  const [edit, setEdit] = useState(null);
 
   // Khởi tạo form
   const [accountForm] = Form.useForm();
@@ -198,6 +206,12 @@ const NewAccount = () => {
 
   // Xử lý khi submit form
   const onFinish = async (values) => {
+    // Nếu đang ở chế độ chỉnh sửa, gọi hàm onUpdate
+    if (edit) {
+      return onUpdate(values);
+    }
+
+    // Nếu không, tiếp tục logic tạo mới
     let createdUserId = null;
     let createdCustomerId = null;
 
@@ -399,6 +413,138 @@ const NewAccount = () => {
     }
   };
 
+  // Hàm xử lý chỉnh sửa khách hàng - đổ dữ liệu vào form
+  const onEditCustomer = (record) => {
+    // Lưu dữ liệu khách hàng vào state edit
+    setEdit(record);
+
+    // Chuẩn bị dữ liệu để điền vào form
+    const formData = {
+      accountNumber: record.accountNumber,
+      address: record.address,
+      currency: record.currency,
+      email: record.email,
+      fullName: record.fullName,
+      gender: record.gender,
+      mobile: record.mobile,
+    };
+
+    // Xử lý ngày sinh nếu có - chuyển đổi sang dayjs object cho DatePicker
+    if (record.DOB) {
+      try {
+        // Thử parse với nhiều định dạng khác nhau
+        let dobDayjs = null;
+
+        // Nếu DOB là string dạng dd/MM/yyyy
+        if (typeof record.DOB === "string" && record.DOB.includes("/")) {
+          dobDayjs = dayjs(record.DOB, "DD/MM/YYYY");
+        } else {
+          // Nếu DOB là ISO string hoặc timestamp
+          dobDayjs = dayjs(record.DOB);
+        }
+
+        // Kiểm tra dayjs object có hợp lệ không
+        if (dobDayjs?.isValid()) {
+          formData.dob = dobDayjs;
+        }
+      } catch (error) {
+        console.log("Không thể parse ngày sinh:", error);
+      }
+    }
+
+    // Tự động điền dữ liệu vào form
+    accountForm.setFieldsValue(formData);
+
+    // Cập nhật các file đã tải lên nếu có
+    setPhoto(record.profile);
+    setSignature(record.signature);
+    setDocument(record.document);
+
+    // Mở modal
+    setAccountModel(true);
+    messageApi.success("Đã tải dữ liệu khách hàng vào form chỉnh sửa");
+  };
+
+  // Hàm xử lý cập nhật khách hàng
+  const onUpdate = async (values) => {
+    try {
+      setLoading(true);
+
+      // Làm sạch dữ liệu đầu vào
+      const finalObj = trimData(values);
+
+      // Xóa password để tránh ghi đè mật khẩu cũ
+      delete finalObj.password;
+
+      // Format ngày sinh nếu có
+      if (finalObj.dob && typeof finalObj.dob === "object") {
+        const dobDate = finalObj.dob.$d || finalObj.dob;
+        const day = String(dobDate.getDate()).padStart(2, "0");
+        const month = String(dobDate.getMonth() + 1).padStart(2, "0");
+        const year = dobDate.getFullYear();
+        finalObj.dob = `${day}/${month}/${year}`;
+      }
+
+      // Chỉ thêm file nếu người dùng tải lên file mới
+      if (photo && photo !== edit.profile) {
+        finalObj.profile = photo;
+      }
+      if (signature && signature !== edit.signature) {
+        finalObj.signature = signature;
+      }
+      if (document && document !== edit.document) {
+        finalObj.document = document;
+      }
+
+      // Gửi yêu cầu cập nhật đến API
+      const response = await httpRequest.put(
+        `/api/customers/${edit._id}`,
+        finalObj,
+      );
+
+      if (response.status === 200) {
+        messageApi.success("Cập nhật khách hàng thành công");
+
+        // Đặt lại form và state sau khi hoàn tất
+        accountForm.resetFields();
+        setPhoto(null);
+        setSignature(null);
+        setDocument(null);
+        setEdit(null);
+        setAccountModel(false);
+
+        // Làm mới dữ liệu
+        mutateCustomers();
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật:", error);
+      messageApi.error("Không thể cập nhật khách hàng");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Hàm xóa khách hàng
+  const onDeleteCustomer = async (id) => {
+    try {
+      // Thực hiện yêu cầu HTTP DELETE tới endpoint /api/customers/ kèm theo ID
+      await httpRequest.delete(`/api/customers/${id}`);
+
+      // Khi thành công, hiển thị thông báo
+      messageApi.success("Xóa khách hàng thành công");
+
+      // Cập nhật lại danh sách khách hàng trên UI mà không cần reload
+      setAllCustomer((prev) => prev.filter((cust) => cust._id !== id));
+      setFinalCustomer((prev) => prev.filter((cust) => cust._id !== id));
+
+      // Làm mới dữ liệu
+      mutateCustomers();
+    } catch (error) {
+      console.error("Lỗi khi xóa khách hàng:", error);
+      messageApi.error("Không thể xóa khách hàng");
+    }
+  };
+
   // Định nghĩa các cột cho bảng
   const columns = [
     // 1. Ảnh chân dung
@@ -545,7 +691,7 @@ const NewAccount = () => {
     // 11. Người tạo (Created By)
     {
       dataIndex: "createdBy",
-      key: "createdBy",
+      key: "createdBy_column",
       render: (createdBy) => (
         <span className="text-gray-600">{createdBy || "-"}</span>
       ),
@@ -554,7 +700,7 @@ const NewAccount = () => {
     // 12. Số dư (finalBalance)
     {
       dataIndex: "finalBalance",
-      key: "finalBalance",
+      key: "finalBalance_column",
       render: (balance) => (
         <span className="font-medium text-green-600">
           {balance?.toLocaleString("vi-VN") || "0"}
@@ -590,17 +736,18 @@ const NewAccount = () => {
       render: (_text, record) => (
         <div className="flex gap-2">
           <Button
-            onClick={() => console.log("Xem khách hàng:", record._id)}
+            onClick={() => onEditCustomer(record)}
             size="small"
             type="primary"
           >
-            Xem
+            Chỉnh sửa
           </Button>
           <Popconfirm
             cancelText="Không"
             description="Sau khi xóa, bạn sẽ không thể khôi phục"
             okText="Có"
-            onConfirm={() => console.log("Xóa khách hàng:", record._id)}
+            onCancel={() => messageApi.info("Dữ liệu của bạn vẫn an toàn")}
+            onConfirm={() => onDeleteCustomer(record._id)}
             title="Bạn có chắc chắn muốn xóa?"
           >
             <Button danger size="small">
@@ -665,9 +812,16 @@ const NewAccount = () => {
       {/* Modal cho biểu mẫu mở tài khoản mới */}
       <Modal
         footer={null}
-        onCancel={() => setAccountModel(false)}
+        onCancel={() => {
+          setAccountModel(false);
+          setEdit(null);
+          accountForm.resetFields();
+          setPhoto(null);
+          setSignature(null);
+          setDocument(null);
+        }}
         open={accountModel}
-        title="Mở tài khoản mới"
+        title={edit ? "Chỉnh sửa tài khoản" : "Mở tài khoản mới"}
         width={820}
       >
         <Form form={accountForm} layout="vertical" onFinish={onFinish}>
@@ -680,7 +834,12 @@ const NewAccount = () => {
                 { message: "Vui lòng nhập số tài khoản", required: true },
               ]}
             >
-              <Input disabled placeholder="Số tài khoản tự động" />
+              <Input
+                disabled
+                placeholder={
+                  edit ? "Không thể thay đổi" : "Số tài khoản tự động"
+                }
+              />
             </Form.Item>
 
             {/* Họ tên */}
@@ -705,15 +864,6 @@ const NewAccount = () => {
           </div>
 
           <div className="grid md:grid-cols-3 gap-x-3">
-            {/* Tên cha */}
-            <Form.Item
-              label="Tên cha"
-              name="fatherName"
-              rules={[{ message: "Vui lòng nhập tên cha", required: true }]}
-            >
-              <Input placeholder="Nhập tên cha" />
-            </Form.Item>
-
             {/* Email */}
             <Form.Item
               label="Email"
@@ -723,16 +873,22 @@ const NewAccount = () => {
                 { message: "Email không hợp lệ", type: "email" },
               ]}
             >
-              <Input placeholder="Nhập email" />
+              <Input
+                disabled={!!edit}
+                placeholder={edit ? "Không thể thay đổi" : "Nhập email"}
+              />
             </Form.Item>
 
             {/* Mật khẩu */}
             <Form.Item
               label="Mật khẩu"
               name="password"
-              rules={[{ message: "Vui lòng nhập mật khẩu", required: true }]}
+              rules={[{ message: "Vui lòng nhập mật khẩu", required: !edit }]}
             >
-              <Input.Password placeholder="Nhập mật khẩu" />
+              <Input.Password
+                disabled={!!edit}
+                placeholder={edit ? "Không thể thay đổi" : "Nhập mật khẩu"}
+              />
             </Form.Item>
           </div>
 
@@ -772,19 +928,55 @@ const NewAccount = () => {
 
           <div className="grid md:grid-cols-3 gap-x-3">
             {/* Tải ảnh */}
-            <Form.Item label="Ảnh" name="photo">
-              <Input onChange={handlePhoto} type="file" />
-            </Form.Item>
+            <div>
+              <Form.Item label="Ảnh" name="photoFile">
+                <Input onChange={handlePhoto} type="file" />
+              </Form.Item>
+              {photo && (
+                <div className="mt-2 ml-0">
+                  <Image
+                    height={80}
+                    src={`${import.meta.env.VITE_BASE_URL}/${photo.startsWith("/") ? photo.slice(1) : photo}`}
+                    width={80}
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Tải chữ ký */}
-            <Form.Item label="Chữ ký" name="signature">
-              <Input onChange={handleSignature} type="file" />
-            </Form.Item>
+            <div>
+              <Form.Item label="Chữ ký" name="signatureFile">
+                <Input onChange={handleSignature} type="file" />
+              </Form.Item>
+              {signature && (
+                <div className="mt-2 ml-0">
+                  <Image
+                    height={80}
+                    src={`${import.meta.env.VITE_BASE_URL}/${signature.startsWith("/") ? signature.slice(1) : signature}`}
+                    width={80}
+                  />
+                </div>
+              )}
+            </div>
 
             {/* Tải tài liệu */}
-            <Form.Item label="Tài liệu" name="document">
-              <Input onChange={handleDocument} type="file" />
-            </Form.Item>
+            <div>
+              <Form.Item label="Tài liệu" name="documentFile">
+                <Input onChange={handleDocument} type="file" />
+              </Form.Item>
+              {document && document !== "bank-images/dummy.jpg" && (
+                <div className="mt-2 ml-0">
+                  <a
+                    className="text-blue-500 underline"
+                    href={`${import.meta.env.VITE_BASE_URL}/${document.startsWith("/") ? document.slice(1) : document}`}
+                    rel="noopener noreferrer"
+                    target="_blank"
+                  >
+                    Xem tài liệu hiện tại
+                  </a>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Địa chỉ */}
@@ -798,14 +990,31 @@ const NewAccount = () => {
 
           {/* Nút Submit */}
           <Form.Item className="flex justify-end mb-0">
-            <Button
-              className="text-white! font-bold"
-              htmlType="submit"
-              loading={loading}
-              type="primary"
-            >
-              Lưu
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                className="text-white! font-bold"
+                htmlType="submit"
+                loading={loading}
+                type="primary"
+              >
+                {edit ? "Cập nhật" : "Lưu"}
+              </Button>
+              {edit && (
+                <Button
+                  onClick={() => {
+                    accountForm.resetFields();
+                    setPhoto(null);
+                    setSignature(null);
+                    setDocument(null);
+                    setEdit(null);
+                    setAccountModel(false);
+                    messageApi.info("Đã hủy chỉnh sửa");
+                  }}
+                >
+                  Hủy
+                </Button>
+              )}
+            </div>
           </Form.Item>
         </Form>
       </Modal>
