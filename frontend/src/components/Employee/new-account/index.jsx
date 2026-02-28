@@ -1,12 +1,20 @@
-import { PlusOutlined, SearchOutlined } from "@ant-design/icons";
+import {
+  DownloadOutlined,
+  EyeInvisibleOutlined,
+  EyeOutlined,
+  PlusOutlined,
+  SearchOutlined,
+} from "@ant-design/icons";
 import {
   Button,
   Card,
   DatePicker,
   Form,
+  Image,
   Input,
   Modal,
   message,
+  Popconfirm,
   Select,
   Table,
 } from "antd";
@@ -21,8 +29,8 @@ import {
 
 const NewAccount = () => {
   // State cho danh sách tài khoản
-  const [accountList, _setAccountList] = useState([]);
-  const [filteredList, setFilteredList] = useState([]);
+  const [allCustomer, setAllCustomer] = useState(null);
+  const [finalCustomer, setFinalCustomer] = useState(null);
   const [searchValue, setSearchValue] = useState("");
 
   // State điều khiển hiển thị Modal
@@ -65,8 +73,8 @@ const NewAccount = () => {
   // Cập nhật danh sách tài khoản khi có dữ liệu customers
   useEffect(() => {
     if (customers) {
-      _setAccountList(customers);
-      setFilteredList(customers);
+      setAllCustomer(customers);
+      setFinalCustomer(customers);
     }
   }, [customers]);
 
@@ -88,27 +96,31 @@ const NewAccount = () => {
     setSearchValue(value);
 
     if (!value) {
-      setFilteredList(accountList);
+      setAllCustomer(finalCustomer);
       return;
     }
 
-    const filtered = accountList.filter((account) => {
-      const accountNumber = (account.accountNumber || "").toLowerCase();
-      const fullName = (account.fullName || "").toLowerCase();
-      const email = (account.email || "").toLowerCase();
-      const mobile = (account.mobile || "").toLowerCase();
-      const branch = (account.branch || "").toLowerCase();
+    const filtered = finalCustomer.filter((cust) => {
+      const fullName = (cust.fullName || "").toLowerCase();
+      const address = (cust.address || "").toLowerCase();
+      const accountNumber = String(cust.accountNumber || "").toLowerCase();
+      const email = (cust.email || "").toLowerCase();
+      const mobile = (cust.mobile || "").toLowerCase();
+      const createdBy = (cust.createdBy || "").toLowerCase();
+      const finalBalance = String(cust.finalBalance || "0").toLowerCase();
 
       return (
-        accountNumber.includes(value) ||
         fullName.includes(value) ||
+        address.includes(value) ||
+        accountNumber.includes(value) ||
         email.includes(value) ||
         mobile.includes(value) ||
-        branch.includes(value)
+        createdBy.includes(value) ||
+        finalBalance.includes(value)
       );
     });
 
-    setFilteredList(filtered);
+    setAllCustomer(filtered);
   };
 
   // Xử lý tải ảnh khách hàng
@@ -121,7 +133,7 @@ const NewAccount = () => {
       const result = await uploadFile(file, "customer-photo", httpRequest);
 
       if (result.success) {
-        setPhoto(result.filePath);
+        setPhoto(result.data.path);
         messageApi.success("Tải ảnh lên thành công");
       } else {
         messageApi.error(result.message || "Tải ảnh lên thất bại");
@@ -145,7 +157,7 @@ const NewAccount = () => {
       const result = await uploadFile(file, "customer-signature", httpRequest);
 
       if (result.success) {
-        setSignature(result.filePath);
+        setSignature(result.data.path);
         messageApi.success("Tải chữ ký lên thành công");
       } else {
         messageApi.error(result.message || "Tải chữ ký lên thất bại");
@@ -169,7 +181,7 @@ const NewAccount = () => {
       const result = await uploadFile(file, "customer-document", httpRequest);
 
       if (result.success) {
-        setDocument(result.filePath);
+        setDocument(result.data.path);
         messageApi.success("Tải tài liệu lên thành công");
       } else {
         messageApi.error(result.message || "Tải tài liệu lên thất bại");
@@ -208,6 +220,15 @@ const NewAccount = () => {
 
       // Chuẩn hóa dữ liệu đầu vào
       const finalObj = trimData(values);
+
+      // Format ngày sinh từ DatePicker sang dd/MM/yyyy
+      if (finalObj.dob && typeof finalObj.dob === "object") {
+        const dobDate = finalObj.dob.$d || finalObj.dob;
+        const day = String(dobDate.getDate()).padStart(2, "0");
+        const month = String(dobDate.getMonth() + 1).padStart(2, "0");
+        const year = dobDate.getFullYear();
+        finalObj.dob = `${day}/${month}/${year}`;
+      }
 
       // Đính kèm đường dẫn tệp tin (sử dụng ảnh mặc định nếu chưa tải lên)
       finalObj.profile = photo || "bank-images/dummy.jpg";
@@ -355,125 +376,237 @@ const NewAccount = () => {
     }
   };
 
+  // Hàm cập nhật trạng thái isActive
+  const updateIsActive = async (id, currentIsActive) => {
+    try {
+      // Đảo ngược trạng thái hiện tại
+      const newStatus = !currentIsActive;
+
+      const response = await httpRequest.put(`/api/customers/${id}`, {
+        isActive: newStatus,
+      });
+
+      if (response.status === 200) {
+        messageApi.success(
+          newStatus ? "Đã kích hoạt khách hàng" : "Đã vô hiệu hóa khách hàng",
+        );
+        // Làm mới dữ liệu
+        mutateCustomers();
+      }
+    } catch (error) {
+      console.error("Lỗi khi cập nhật trạng thái:", error);
+      messageApi.error("Không thể cập nhật trạng thái");
+    }
+  };
+
   // Định nghĩa các cột cho bảng
   const columns = [
+    // 1. Ảnh chân dung
+    {
+      dataIndex: "profile",
+      key: "profile",
+      render: (profile) => {
+        let profilePath = profile || "bank-images/dummy.jpg";
+        if (profilePath.startsWith("/")) {
+          profilePath = profilePath.slice(1);
+        }
+        const imageUrl = `${import.meta.env.VITE_BASE_URL}/${profilePath}`;
+        return (
+          <Image
+            className="rounded-full object-cover"
+            fallback={`${import.meta.env.VITE_BASE_URL}/bank-images/dummy.jpg`}
+            height={40}
+            src={imageUrl}
+            style={{ borderRadius: "50%" }}
+            width={40}
+          />
+        );
+      },
+      title: "Ảnh",
+    },
+    // 2. Chữ ký
+    {
+      dataIndex: "signature",
+      key: "signature",
+      render: (signature) => {
+        let signaturePath = signature || "bank-images/dummy.jpg";
+        if (signaturePath.startsWith("/")) {
+          signaturePath = signaturePath.slice(1);
+        }
+        const imageUrl = `${import.meta.env.VITE_BASE_URL}/${signaturePath}`;
+        return (
+          <Image
+            className="rounded-full object-cover"
+            fallback={`${import.meta.env.VITE_BASE_URL}/bank-images/dummy.jpg`}
+            height={40}
+            src={imageUrl}
+            style={{ borderRadius: "50%" }}
+            width={40}
+          />
+        );
+      },
+      title: "Chữ ký",
+    },
+    // 3. Tài liệu (nút download)
+    {
+      dataIndex: "document",
+      key: "document",
+      render: (document) => {
+        const hasDocument = document && document !== "bank-images/dummy.jpg";
+        if (!hasDocument) {
+          return <span className="text-gray-400">-</span>;
+        }
+        let docPath = document;
+        if (docPath.startsWith("/")) {
+          docPath = docPath.slice(1);
+        }
+        const downloadUrl = `${import.meta.env.VITE_BASE_URL}/${docPath}`;
+        return (
+          <Button
+            className="bg-blue-100 text-blue-500 hover:bg-blue-200"
+            href={downloadUrl}
+            icon={<DownloadOutlined />}
+            shape="circle"
+            target="_blank"
+            type="text"
+          />
+        );
+      },
+      title: "Tài liệu",
+    },
+    // 4. Loại người dùng
+    {
+      dataIndex: "userType",
+      key: "userType",
+      render: (text) => {
+        let colorClass = "text-rose-500";
+        let label = "khách hàng";
+        if (text === "admin") {
+          colorClass = "text-indigo-500";
+          label = "quản trị viên";
+        } else if (text === "employee") {
+          colorClass = "text-green-500";
+          label = "nhân viên";
+        }
+        return (
+          <span className={`${colorClass} capitalize font-medium`}>
+            {label}
+          </span>
+        );
+      },
+      title: "Loại người dùng",
+    },
+    // 5. Số tài khoản
     {
       dataIndex: "accountNumber",
       key: "accountNumber",
       title: "Số tài khoản",
     },
+    // 6. Họ tên
     {
       dataIndex: "fullName",
       key: "fullName",
       title: "Họ tên",
     },
+    // 7. Ngày sinh
     {
       dataIndex: "DOB",
       key: "DOB",
+      render: (dob) => {
+        if (!dob) return "-";
+        // Chuyển đổi sang định dạng dd/MM/yyyy
+        const date = new Date(dob);
+        if (Number.isNaN(date.getTime())) return dob;
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const year = date.getFullYear();
+        return `${day}/${month}/${year}`;
+      },
       title: "Ngày sinh",
     },
-    {
-      dataIndex: "gender",
-      key: "gender",
-      render: (text) => {
-        const genderMap = {
-          female: "Nữ",
-          male: "Nam",
-        };
-        return <span>{genderMap[text] || text}</span>;
-      },
-      title: "Giới tính",
-    },
+    // 8. Email
     {
       dataIndex: "email",
       key: "email",
       title: "Email",
     },
+    // 9. Số điện thoại
     {
       dataIndex: "mobile",
       key: "mobile",
       title: "Số điện thoại",
     },
+    // 10. Địa chỉ
     {
-      dataIndex: "currency",
-      key: "currency",
-      render: (text) => <span className="uppercase">{text}</span>,
-      title: "Tiền tệ",
+      dataIndex: "address",
+      key: "address",
+      title: "Địa chỉ",
     },
+    // 11. Người tạo (Created By)
+    {
+      dataIndex: "createdBy",
+      key: "createdBy",
+      render: (createdBy) => (
+        <span className="text-gray-600">{createdBy || "-"}</span>
+      ),
+      title: "Người tạo",
+    },
+    // 12. Số dư (finalBalance)
     {
       dataIndex: "finalBalance",
       key: "finalBalance",
       render: (balance) => (
-        <span className="font-medium">
+        <span className="font-medium text-green-600">
           {balance?.toLocaleString("vi-VN") || "0"}
         </span>
       ),
       title: "Số dư",
     },
-    {
-      dataIndex: "branch",
-      key: "branch",
-      title: "Chi nhánh",
-    },
-    {
-      dataIndex: "profile",
-      key: "profile",
-      render: (profile) => (
-        <span
-          className={`cursor-pointer ${profile && profile !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
-        >
-          {profile && profile !== "bank-images/dummy.jpg" ? "Có" : "Không"}
-        </span>
-      ),
-      title: "Ảnh",
-    },
-    {
-      dataIndex: "signature",
-      key: "signature",
-      render: (signature) => (
-        <span
-          className={`cursor-pointer ${signature && signature !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
-        >
-          {signature && signature !== "bank-images/dummy.jpg" ? "Có" : "Không"}
-        </span>
-      ),
-      title: "Chữ ký",
-    },
-    {
-      dataIndex: "document",
-      key: "document",
-      render: (document) => (
-        <span
-          className={`cursor-pointer ${document && document !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
-        >
-          {document && document !== "bank-images/dummy.jpg" ? "Có" : "Không"}
-        </span>
-      ),
-      title: "Tài liệu",
-    },
+    // 13. Trạng thái (có thể click để thay đổi)
     {
       dataIndex: "isActive",
       key: "isActive",
-      render: (isActive) => (
-        <span
-          className={`${isActive ? "text-green-500" : "text-red-500"} font-medium`}
+      render: (isActive, record) => (
+        <Popconfirm
+          cancelText="Không"
+          description="Sau khi cập nhật, bạn có thể cập nhật lại"
+          okText="Có"
+          onConfirm={() => updateIsActive(record._id, isActive)}
+          title="Bạn có chắc chắn?"
         >
-          {isActive ? "Hoạt động" : "Khóa"}
-        </span>
+          {isActive ? (
+            <EyeOutlined className="text-green-500 hover:text-green-700 text-lg cursor-pointer" />
+          ) : (
+            <EyeInvisibleOutlined className="text-pink-500 hover:text-pink-700 text-lg cursor-pointer" />
+          )}
+        </Popconfirm>
       ),
       title: "Trạng thái",
     },
+    // 14. Hành động
     {
       fixed: "right",
       key: "action",
-      render: () => (
+      render: (_text, record) => (
         <div className="flex gap-2">
-          <Button size="small" type="primary">
+          <Button
+            onClick={() => console.log("Xem khách hàng:", record._id)}
+            size="small"
+            type="primary"
+          >
             Xem
           </Button>
-          <Button danger size="small">
-            Xóa
-          </Button>
+          <Popconfirm
+            cancelText="Không"
+            description="Sau khi xóa, bạn sẽ không thể khôi phục"
+            okText="Có"
+            onConfirm={() => console.log("Xóa khách hàng:", record._id)}
+            title="Bạn có chắc chắn muốn xóa?"
+          >
+            <Button danger size="small">
+              Xóa
+            </Button>
+          </Popconfirm>
         </div>
       ),
       title: "Hành động",
@@ -481,7 +614,7 @@ const NewAccount = () => {
   ];
 
   // Dữ liệu hiển thị
-  const displayData = searchValue ? filteredList : accountList;
+  const displayData = allCustomer || [];
 
   // Options cho Select
   const genderOptions = [
@@ -666,7 +799,7 @@ const NewAccount = () => {
           {/* Nút Submit */}
           <Form.Item className="flex justify-end mb-0">
             <Button
-              className="!text-white font-bold"
+              className="text-white! font-bold"
               htmlType="submit"
               loading={loading}
               type="primary"

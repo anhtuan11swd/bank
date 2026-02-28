@@ -186,6 +186,9 @@ const NewEmployee = () => {
     // Làm sạch dữ liệu đầu vào
     const finalObj = trimData(values);
 
+    // Xóa password để tránh ghi đè mật khẩu cũ
+    delete finalObj.password;
+
     // Chỉ thêm ảnh đại diện nếu người dùng tải lên ảnh mới
     // Nếu không, backend sẽ giữ nguyên ảnh cũ
     if (photo) {
@@ -499,7 +502,10 @@ const NewEmployee = () => {
                   { message: "Email không hợp lệ", type: "email" },
                 ]}
               >
-                <Input placeholder="Nhập email" />
+                <Input
+                  disabled={!!edit}
+                  placeholder={edit ? "Không thể thay đổi" : "Nhập email"}
+                />
               </Form.Item>
 
               <Form.Item
