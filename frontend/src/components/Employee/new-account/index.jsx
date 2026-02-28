@@ -11,7 +11,7 @@ import {
   Table,
 } from "antd";
 import { useEffect, useState } from "react";
-import useSWR from "swr";
+import useSWR, { mutate } from "swr";
 import {
   fetchData,
   http,
@@ -53,14 +53,34 @@ const NewAccount = () => {
     },
   );
 
+  // Fetch danh sách customers
+  const { data: customers, mutate: mutateCustomers } = useSWR(
+    "/api/customers",
+    (url) => fetchData(url, httpRequest),
+    {
+      revalidateOnFocus: true,
+    },
+  );
+
+  // Cập nhật danh sách tài khoản khi có dữ liệu customers
+  useEffect(() => {
+    if (customers) {
+      _setAccountList(customers);
+      setFilteredList(customers);
+    }
+  }, [customers]);
+
+  // Lấy dữ liệu branding đầu tiên từ mảng
+  const brandingData = brandings?.[0];
+
   // Cập nhật số tài khoản động khi có dữ liệu branding
   useEffect(() => {
-    if (brandings?.data?.bankAccountNumber) {
-      const baseNumber = Number(brandings.data.bankAccountNumber);
+    if (brandingData?.bankAccountNumber && accountModel) {
+      const baseNumber = Number(brandingData.bankAccountNumber);
       const newNumber = baseNumber + number + 1;
-      accountForm.setFieldValue("accountNumber", String(newNumber));
+      accountForm.setFieldsValue({ accountNumber: String(newNumber) });
     }
-  }, [brandings, number, accountForm]);
+  }, [brandingData, number, accountForm, accountModel]);
 
   // Xử lý tìm kiếm
   const handleSearch = (e) => {
@@ -166,8 +186,25 @@ const NewAccount = () => {
 
   // Xử lý khi submit form
   const onFinish = async (values) => {
+    let createdUserId = null;
+    let createdCustomerId = null;
+
     try {
       setLoading(true);
+
+      // Lấy thông tin nhân viên từ sessionStorage
+      const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}");
+      const employeeBranch = userInfo?.branch || "";
+      const employeeEmail = userInfo?.email || "";
+
+      // Kiểm tra thông tin nhân viên
+      if (!employeeEmail) {
+        messageApi.error(
+          "Không tìm thấy thông tin nhân viên. Vui lòng đăng nhập lại.",
+        );
+        setLoading(false);
+        return;
+      }
 
       // Chuẩn hóa dữ liệu đầu vào
       const finalObj = trimData(values);
@@ -181,14 +218,93 @@ const NewAccount = () => {
       finalObj.userType = "customer";
       finalObj.key = finalObj.email;
 
-      // TODO: Gửi dữ liệu lên server khi API sẵn sàng
-      // const response = await httpRequest.post("/api/users", finalObj);
+      // Thêm thông tin chi nhánh và người tạo
+      finalObj.branch = employeeBranch;
+      finalObj.createdBy = employeeEmail;
 
-      // Kiểm tra dữ liệu trong console
-      console.log("Dữ liệu tài khoản mới:", finalObj);
+      // Bước 1: Tạo tài khoản đăng nhập trong bộ sưu tập Users
+      const userPayload = {
+        address: finalObj.address,
+        branch: employeeBranch,
+        email: finalObj.email,
+        fullName: finalObj.fullName,
+        isActive: true,
+        key: finalObj.email,
+        mobile: finalObj.mobile,
+        password: finalObj.password,
+        profile: finalObj.profile,
+        userType: "customer",
+      };
+
+      const userResponse = await httpRequest.post("/api/users", userPayload);
+      createdUserId = userResponse?.data?.data?._id;
+
+      // Bước 2: Tạo hồ sơ khách hàng trong bộ sưu tập Customers
+      const customerPayload = {
+        accountNumber: Number(finalObj.accountNumber),
+        address: finalObj.address,
+        branch: employeeBranch,
+        createdBy: employeeEmail,
+        currency: finalObj.currency,
+        DOB: finalObj.dob,
+        document: finalObj.document,
+        email: finalObj.email,
+        finalBalance: 0,
+        fullName: finalObj.fullName,
+        gender: finalObj.gender,
+        isActive: true,
+        mobile: finalObj.mobile,
+        profile: finalObj.profile,
+        signature: finalObj.signature,
+        userType: "customer",
+      };
+
+      const customerResponse = await httpRequest.post(
+        "/api/customers",
+        customerPayload,
+      );
+      createdCustomerId = customerResponse?.data?.data?._id;
+
+      // Bước 3: Gửi email thông báo cho khách hàng
+      const emailPayload = {
+        email: finalObj.email,
+        fullName: finalObj.fullName,
+        message: `Chào ${finalObj.fullName},\n\nTài khoản của bạn đã được tạo thành công.\n\nThông tin đăng nhập:\nEmail: ${finalObj.email}\nMật khẩu: ${finalObj.password}\n\nVui lòng đổi mật khẩu sau khi đăng nhập lần đầu.`,
+        subject: "Thông báo tạo tài khoản thành công",
+      };
+
+      await httpRequest.post("/api/send-email", emailPayload);
+
+      // Bước 4: Cập nhật số tài khoản tiếp theo trong Branding
+      if (brandingData?._id) {
+        const nextAccountNumber = Number(finalObj.accountNumber) + 1;
+        const brandingPayload = {
+          bankAccountNumber: String(nextAccountNumber),
+          bankAddress: brandingData.bankAddress,
+          bankDescription: brandingData.bankDescription,
+          bankLogo: brandingData.bankLogo,
+          bankName: brandingData.bankName,
+          bankTagline: brandingData.bankTagline,
+          bankTransactionId: brandingData.bankTransactionId,
+          facebook: brandingData.facebook,
+          linkedin: brandingData.linkedin,
+          twitter: brandingData.twitter,
+        };
+
+        await httpRequest.put(
+          `/api/branding/${brandingData._id}`,
+          brandingPayload,
+        );
+
+        // Cập nhật dữ liệu branding ngay lập tức
+        mutate("/api/branding");
+      }
+
+      // Làm mới danh sách customers
+      mutateCustomers();
 
       // Hiển thị thông báo thành công
-      messageApi.success("Tài khoản đã được tạo");
+      messageApi.success("Tạo tài khoản thành công");
 
       // Tăng số tài khoản cho lần tiếp theo
       setNumber((prev) => prev + 1);
@@ -200,9 +316,40 @@ const NewAccount = () => {
       setDocument(null);
       setAccountModel(false);
     } catch (error) {
-      messageApi.error(
-        error.response?.data?.message || "Thất bại - Vui lòng thử lại sau",
-      );
+      console.error("Lỗi khi tạo tài khoản:", error);
+
+      // Cleanup: Xóa dữ liệu đã tạo nếu có lỗi xảy ra giữa chừng
+      if (createdCustomerId) {
+        try {
+          await httpRequest.delete(`/api/customers/${createdCustomerId}`);
+          console.log("Đã xóa customer do lỗi:", createdCustomerId);
+        } catch (cleanupError) {
+          console.error("Không thể xóa customer:", cleanupError);
+        }
+      }
+      if (createdUserId) {
+        try {
+          await httpRequest.delete(`/api/users/${createdUserId}`);
+          console.log("Đã xóa user do lỗi:", createdUserId);
+        } catch (cleanupError) {
+          console.error("Không thể xóa user:", cleanupError);
+        }
+      }
+
+      // Kiểm tra lỗi trùng lặp email
+      if (error.response?.data?.error?.code === 11000) {
+        messageApi.error("Email đã tồn tại trong hệ thống");
+      } else if (error.response?.status === 404) {
+        messageApi.error(
+          "API endpoint không tồn tại. Vui lòng kiểm tra cấu hình server.",
+        );
+      } else if (error.response?.status === 500) {
+        messageApi.error("Lỗi máy chủ. Vui lòng thử lại sau.");
+      } else {
+        messageApi.error(
+          error.response?.data?.message || "Thất bại - Vui lòng thử lại sau",
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -210,25 +357,6 @@ const NewAccount = () => {
 
   // Định nghĩa các cột cho bảng
   const columns = [
-    {
-      dataIndex: "branch",
-      key: "branch",
-      title: "Chi nhánh",
-    },
-    {
-      dataIndex: "userType",
-      key: "userType",
-      render: (text) => {
-        const colorClass =
-          text === "customer" ? "text-green-500" : "text-blue-500";
-        return (
-          <span className={`${colorClass} capitalize font-medium`}>
-            {text || "customer"}
-          </span>
-        );
-      },
-      title: "Loại người dùng",
-    },
     {
       dataIndex: "accountNumber",
       key: "accountNumber",
@@ -240,9 +368,21 @@ const NewAccount = () => {
       title: "Họ tên",
     },
     {
-      dataIndex: "dateOfBirth",
-      key: "dateOfBirth",
+      dataIndex: "DOB",
+      key: "DOB",
       title: "Ngày sinh",
+    },
+    {
+      dataIndex: "gender",
+      key: "gender",
+      render: (text) => {
+        const genderMap = {
+          female: "Nữ",
+          male: "Nam",
+        };
+        return <span>{genderMap[text] || text}</span>;
+      },
+      title: "Giới tính",
     },
     {
       dataIndex: "email",
@@ -255,16 +395,34 @@ const NewAccount = () => {
       title: "Số điện thoại",
     },
     {
-      dataIndex: "address",
-      key: "address",
-      title: "Địa chỉ",
+      dataIndex: "currency",
+      key: "currency",
+      render: (text) => <span className="uppercase">{text}</span>,
+      title: "Tiền tệ",
     },
     {
-      dataIndex: "photo",
-      key: "photo",
-      render: (photo) => (
-        <span className="text-blue-500 cursor-pointer">
-          {photo ? "Có" : "Không"}
+      dataIndex: "finalBalance",
+      key: "finalBalance",
+      render: (balance) => (
+        <span className="font-medium">
+          {balance?.toLocaleString("vi-VN") || "0"}
+        </span>
+      ),
+      title: "Số dư",
+    },
+    {
+      dataIndex: "branch",
+      key: "branch",
+      title: "Chi nhánh",
+    },
+    {
+      dataIndex: "profile",
+      key: "profile",
+      render: (profile) => (
+        <span
+          className={`cursor-pointer ${profile && profile !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
+        >
+          {profile && profile !== "bank-images/dummy.jpg" ? "Có" : "Không"}
         </span>
       ),
       title: "Ảnh",
@@ -273,8 +431,10 @@ const NewAccount = () => {
       dataIndex: "signature",
       key: "signature",
       render: (signature) => (
-        <span className="text-blue-500 cursor-pointer">
-          {signature ? "Có" : "Không"}
+        <span
+          className={`cursor-pointer ${signature && signature !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
+        >
+          {signature && signature !== "bank-images/dummy.jpg" ? "Có" : "Không"}
         </span>
       ),
       title: "Chữ ký",
@@ -283,11 +443,25 @@ const NewAccount = () => {
       dataIndex: "document",
       key: "document",
       render: (document) => (
-        <span className="text-blue-500 cursor-pointer">
-          {document ? "Có" : "Không"}
+        <span
+          className={`cursor-pointer ${document && document !== "bank-images/dummy.jpg" ? "text-green-500" : "text-gray-400"}`}
+        >
+          {document && document !== "bank-images/dummy.jpg" ? "Có" : "Không"}
         </span>
       ),
       title: "Tài liệu",
+    },
+    {
+      dataIndex: "isActive",
+      key: "isActive",
+      render: (isActive) => (
+        <span
+          className={`${isActive ? "text-green-500" : "text-red-500"} font-medium`}
+        >
+          {isActive ? "Hoạt động" : "Khóa"}
+        </span>
+      ),
+      title: "Trạng thái",
     },
     {
       fixed: "right",

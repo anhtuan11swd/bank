@@ -7,6 +7,7 @@ import morgan from "morgan";
 import branchRouter from "./routes/branch.routes.js";
 import brandingRouter from "./routes/branding.routes.js";
 import currencyRouter from "./routes/currency.routes.js";
+import customerRouter from "./routes/customer.routes.js";
 import loginRouter from "./routes/login.routes.js";
 import sendEmailRouter from "./routes/send-email.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
@@ -35,6 +36,7 @@ app.use("/api/branding", brandingRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/send-email", sendEmailRouter);
 app.use("/api/verify-token", verifyRouter);
+app.use("/api/customers", customerRouter);
 
 app.use((_req, res) => {
   res.status(404).json({
