@@ -14,10 +14,18 @@ const NewAccount = lazy(() => import("./components/shared/new-account"));
 const EmpTransaction = lazy(
   () => import("./components/Employee/emp-transaction"),
 );
+const AdminTransaction = lazy(
+  () => import("./components/admin/AdminTransaction"),
+);
 const HomePage = lazy(() => import("./components/home"));
 const Login = lazy(() => import("./components/home/login"));
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
 const EmployeeLayout = lazy(() => import("./components/layout/EmployeeLayout"));
+const CustomerLayout = lazy(() => import("./components/layout/CustomerLayout"));
+const CustomerDashboard = lazy(() => import("./components/Customer"));
+const CustomerTransactions = lazy(
+  () => import("./components/Customer/transactions"),
+);
 const PageNotFound = lazy(() => import("./components/PageNotFound"));
 
 function App() {
@@ -34,6 +42,7 @@ function App() {
               <Route element={<Dashboard />} index />
               <Route element={<NewEmployee />} path="new-employee" />
               <Route element={<NewAccount />} path="new-account" />
+              <Route element={<AdminTransaction />} path="new-transaction" />
               <Route element={<Branch />} path="branch" />
               <Route element={<Currency />} path="currency" />
               <Route element={<Branding />} path="branding" />
@@ -55,6 +64,19 @@ function App() {
             </Route>
           </Route>
           {/* ========== End Employee Related Routes ========== */}
+
+          {/* ========== Start Customer Related Routes ========== */}
+          <Route
+            element={<Guard endPoint="/api/verify-token" />}
+            path="/customer"
+          >
+            <Route element={<CustomerLayout />}>
+              <Route element={<CustomerDashboard />} index />
+              <Route element={<CustomerTransactions />} path="transactions" />
+              <Route element={<PageNotFound />} path="*" />
+            </Route>
+          </Route>
+          {/* ========== End Customer Related Routes ========== */}
 
           <Route element={<PageNotFound />} path="*" />
         </Routes>

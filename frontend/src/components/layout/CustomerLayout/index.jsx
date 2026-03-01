@@ -1,14 +1,9 @@
 import {
-  BranchesOutlined,
+  AccountBookOutlined,
   DashboardOutlined,
-  DollarCircleOutlined,
-  GiftOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  SwapOutlined,
-  UserAddOutlined,
-  UserOutlined,
 } from "@ant-design/icons";
 import { Button, Layout, Menu, theme } from "antd";
 import { useState } from "react";
@@ -17,7 +12,7 @@ import Cookies from "universal-cookie";
 
 const { Header, Sider, Content } = Layout;
 
-const AdminLayout = () => {
+const CustomerLayout = () => {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -32,42 +27,17 @@ const AdminLayout = () => {
   const menuItems = [
     {
       icon: <DashboardOutlined />,
-      key: "/admin",
-      label: <Link to="/admin">Bảng điều khiển</Link>,
+      key: "/customer",
+      label: <Link to="/customer">Dashboard</Link>,
     },
     {
-      icon: <UserOutlined />,
-      key: "/admin/new-employee",
-      label: <Link to="/admin/new-employee">Thêm nhân viên mới</Link>,
-    },
-    {
-      icon: <UserAddOutlined />,
-      key: "/admin/new-account",
-      label: <Link to="/admin/new-account">Mở tài khoản mới</Link>,
-    },
-    {
-      icon: <SwapOutlined />,
-      key: "/admin/new-transaction",
-      label: <Link to="/admin/new-transaction">Giao dịch mới</Link>,
-    },
-    {
-      icon: <BranchesOutlined />,
-      key: "/admin/branch",
-      label: <Link to="/admin/branch">Chi nhánh</Link>,
-    },
-    {
-      icon: <DollarCircleOutlined />,
-      key: "/admin/currency",
-      label: <Link to="/admin/currency">Tiền tệ</Link>,
-    },
-    {
-      icon: <GiftOutlined />,
-      key: "/admin/branding",
-      label: <Link to="/admin/branding">Thương hiệu</Link>,
+      icon: <AccountBookOutlined />,
+      key: "/customer/transactions",
+      label: <Link to="/customer/transactions">Giao dịch</Link>,
     },
     {
       icon: <LogoutOutlined />,
-      key: "/admin/logout",
+      key: "/customer/logout",
       label: (
         <button
           className="font-semibold bg-transparent border-0 p-0 cursor-pointer hover:opacity-80"
@@ -80,6 +50,7 @@ const AdminLayout = () => {
       ),
     },
   ];
+
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
@@ -122,4 +93,4 @@ const AdminLayout = () => {
     </Layout>
   );
 };
-export default AdminLayout;
+export default CustomerLayout;

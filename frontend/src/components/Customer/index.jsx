@@ -1,7 +1,7 @@
 import Dashboard from "../shared/dashboard";
 
-const EmployeeDashboard = () => {
+const CustomerDashboard = () => {
   return <Dashboard />;
 };
 
-export default EmployeeDashboard;
+export default CustomerDashboard;
