@@ -11,6 +11,9 @@ const Currency = lazy(() => import("./components/admin/Currency"));
 const NewEmployee = lazy(() => import("./components/admin/NewEmployee"));
 const EmployeeDashboard = lazy(() => import("./components/Employee"));
 const NewAccount = lazy(() => import("./components/shared/new-account"));
+const EmpTransaction = lazy(
+  () => import("./components/Employee/emp-transaction"),
+);
 const HomePage = lazy(() => import("./components/home"));
 const Login = lazy(() => import("./components/home/login"));
 const AdminLayout = lazy(() => import("./components/layout/AdminLayout"));
@@ -47,6 +50,7 @@ function App() {
             <Route element={<EmployeeLayout />}>
               <Route element={<EmployeeDashboard />} index />
               <Route element={<NewAccount />} path="new-account" />
+              <Route element={<EmpTransaction />} path="new-transaction" />
               <Route element={<PageNotFound />} path="*" />
             </Route>
           </Route>
