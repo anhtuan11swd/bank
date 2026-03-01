@@ -344,6 +344,7 @@ const NewAccount = () => {
         email: finalObj.email,
         fullName: finalObj.fullName,
         message: `Chào ${finalObj.fullName},\n\nTài khoản của bạn đã được tạo thành công.\n\nThông tin đăng nhập:\nEmail: ${finalObj.email}\nMật khẩu: ${finalObj.password}\n\nVui lòng đổi mật khẩu sau khi đăng nhập lần đầu.`,
+        password: finalObj.password,
         subject: "Thông báo tạo tài khoản thành công",
       };
 
