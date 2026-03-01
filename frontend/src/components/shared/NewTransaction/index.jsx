@@ -13,6 +13,7 @@ import {
 import { useState } from "react";
 import Cookies from "universal-cookie";
 import { http } from "../../../modules/modules.js";
+import { formatCurrencyVN, formatDateVN } from "../../../utils/format.js";
 
 const cookies = new Cookies();
 
@@ -31,6 +32,15 @@ const TRANSACTION_TYPE_OPTIONS = [
   { label: "Credit (Ghi có)", value: "credit" },
   { label: "Debit (Ghi nợ)", value: "debit" },
 ];
+
+/** Làm sạch dữ liệu form giao dịch: trim chuỗi, giữ amount dạng number để tránh NaN */
+const trimTransactionValues = (values) => {
+  const result = { ...values };
+  if (typeof result.reference === "string")
+    result.reference = result.reference.trim();
+  result.amount = Number(result.amount) || 0;
+  return result;
+};
 
 /** Form tạo giao dịch mới: tìm tài khoản theo số, hiển thị thông tin và nhập chi tiết giao dịch */
 const NewTransaction = () => {
@@ -70,8 +80,39 @@ const NewTransaction = () => {
   };
 
   // Xử lý khi submit form giao dịch
-  const onFinish = (values) => {
-    console.log(values);
+  const onFinish = async (values) => {
+    try {
+      const finalObj = trimTransactionValues(values);
+      let balance = 0;
+      const current = Number(accountDetail?.finalBalance) || 0;
+      const amount = Number(finalObj.amount) || 0;
+
+      if (finalObj.transactionType === "credit") {
+        balance = current + amount;
+      } else if (finalObj.transactionType === "debit") {
+        balance = current - amount;
+      }
+
+      finalObj.currentBalance = balance;
+      finalObj.customerId = accountDetail._id;
+      finalObj.accountNumber = accountDetail.accountNumber;
+      finalObj.transactionAmount = Number(finalObj.amount);
+
+      const token = cookies.get("auth-token");
+      await http(token).post("/api/transaction", finalObj);
+      await http(token).put(`/api/customers/${accountDetail._id}`, {
+        finalBalance: balance,
+      });
+
+      messageApi.success("Tạo giao dịch thành công");
+      transactionForm.resetFields();
+      setAccountDetail(null);
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Transaction error:", error?.message);
+      }
+      messageApi.error("Không thể xử lý giao dịch");
+    }
   };
 
   return (
@@ -121,13 +162,15 @@ const NewTransaction = () => {
             <div className="flex justify-between items-center">
               <b>Số dư</b>
               <b>
-                {accountDetail?.currency === "INR" ? "₹" : "$"}{" "}
-                {accountDetail?.finalBalance ?? "-"}
+                {formatCurrencyVN(
+                  accountDetail?.finalBalance,
+                  accountDetail?.currency,
+                )}
               </b>
             </div>
             <div className="flex justify-between items-center">
               <b>Ngày sinh</b>
-              <b>{accountDetail.DOB ?? "-"}</b>
+              <b>{formatDateVN(accountDetail.DOB)}</b>
             </div>
             <div className="flex justify-between items-center">
               <b>Loại tiền</b>

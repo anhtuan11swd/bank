@@ -28,6 +28,7 @@ import {
   trimData,
   uploadFile,
 } from "../../../modules/modules.js";
+import { formatCurrencyVN, formatDateVN } from "../../../utils/format.js";
 
 // Extend dayjs với plugin customParseFormat
 dayjs.extend(customParseFormat);
@@ -714,16 +715,7 @@ const NewAccount = () => {
     {
       dataIndex: "DOB",
       key: "DOB",
-      render: (dob) => {
-        if (!dob) return "-";
-        // Chuyển đổi sang định dạng dd/MM/yyyy
-        const date = new Date(dob);
-        if (Number.isNaN(date.getTime())) return dob;
-        const day = String(date.getDate()).padStart(2, "0");
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const year = date.getFullYear();
-        return `${day}/${month}/${year}`;
-      },
+      render: (dob) => formatDateVN(dob),
       title: "Ngày sinh",
     },
     // 8. Email
@@ -768,9 +760,9 @@ const NewAccount = () => {
     {
       dataIndex: "finalBalance",
       key: "finalBalance_column",
-      render: (balance) => (
+      render: (balance, record) => (
         <span className="font-medium text-green-600">
-          {balance?.toLocaleString("vi-VN") || "0"}
+          {formatCurrencyVN(balance, record?.currency)}
         </span>
       ),
       title: "Số dư",

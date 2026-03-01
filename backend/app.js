@@ -11,6 +11,7 @@ import customerRouter from "./routes/customer.routes.js";
 import findByAccountRouter from "./routes/find-by-account.routes.js";
 import loginRouter from "./routes/login.routes.js";
 import sendEmailRouter from "./routes/send-email.routes.js";
+import transactionRouter from "./routes/transaction.routes.js";
 import uploadRouter from "./routes/upload.routes.js";
 import usersRouter from "./routes/users.routes.js";
 import verifyRouter from "./routes/verify.routes.js";
@@ -39,6 +40,7 @@ app.use("/api/send-email", sendEmailRouter);
 app.use("/api/verify-token", verifyRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/find-by-account", findByAccountRouter);
+app.use("/api/transaction", transactionRouter);
 
 app.use((_req, res) => {
   res.status(404).json({
