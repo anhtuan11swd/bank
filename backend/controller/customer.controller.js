@@ -1,9 +1,57 @@
 import Customer from "../model/customer.model.js";
 import User from "../model/users.model.js";
+import { findOneRecord } from "../services/db.js";
 import { createData, getData } from "./controller.js";
 
 export const createCustomer = (req, res) => createData(req, res, Customer);
 export const getCustomers = (req, res) => getData(req, res, Customer);
+
+// Tìm khách hàng theo số tài khoản (dùng cho form giao dịch)
+export const findAccountByAccountNumber = async (req, res, schema) => {
+  try {
+    const { accountNumber, branch } = req.body ?? {};
+    if (
+      accountNumber === undefined ||
+      accountNumber === null ||
+      accountNumber === ""
+    ) {
+      return res.status(400).json({
+        message: "Thiếu số tài khoản",
+        success: false,
+      });
+    }
+    const num = Number(accountNumber);
+    if (Number.isNaN(num) || num < 0) {
+      return res.status(400).json({
+        message: "Số tài khoản không hợp lệ",
+        success: false,
+      });
+    }
+    const query = { accountNumber: num };
+    if (branch !== undefined && branch !== null && branch !== "") {
+      query.branch = branch;
+    }
+    const customer = await findOneRecord(query, schema);
+    if (!customer) {
+      return res.status(404).json({
+        message: "Không tìm thấy tài khoản",
+        success: false,
+      });
+    }
+    return res.status(200).json({
+      data: customer,
+      message: "Record Found",
+      success: true,
+    });
+  } catch (error) {
+    console.error("Lỗi khi tìm tài khoản:", error);
+    return res.status(500).json({
+      error: error.message,
+      message: "Lỗi máy chủ nội bộ",
+      success: false,
+    });
+  }
+};
 
 // Cập nhật customer với đồng bộ isActive sang users
 export const updateCustomer = async (req, res) => {

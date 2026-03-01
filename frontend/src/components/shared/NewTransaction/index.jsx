@@ -1,9 +1,30 @@
 import { SearchOutlined } from "@ant-design/icons";
-import { Button, Card, Empty, Form, Image, Input, message, Select } from "antd";
+import {
+  Button,
+  Card,
+  Empty,
+  Form,
+  Image,
+  Input,
+  message,
+  Select,
+  Space,
+} from "antd";
 import { useState } from "react";
+import Cookies from "universal-cookie";
+import { http } from "../../../modules/modules.js";
+
+const cookies = new Cookies();
 
 // URL ảnh mặc định khi chưa có ảnh thật
-const dummyImageUrl = `${import.meta.env.VITE_BASE_URL || ""}/bank-images/dummy.jpg`;
+const baseUrl = import.meta.env.VITE_BASE_URL || "";
+const dummyImageUrl = `${baseUrl}/bank-images/dummy.jpg`;
+
+/** Nối base URL với đường dẫn ảnh (tránh double slash) */
+const imageSrc = (base, path) =>
+  path
+    ? `${base.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`
+    : dummyImageUrl;
 
 // Các loại giao dịch: ghi có / ghi nợ
 const TRANSACTION_TYPE_OPTIONS = [
@@ -13,15 +34,39 @@ const TRANSACTION_TYPE_OPTIONS = [
 
 /** Form tạo giao dịch mới: tìm tài khoản theo số, hiển thị thông tin và nhập chi tiết giao dịch */
 const NewTransaction = () => {
-  const _userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}");
-  const [_messageApi, contextHolder] = message.useMessage();
+  const userInfo = JSON.parse(sessionStorage.getItem("userInfo") || "{}");
+  const [messageApi, contextHolder] = message.useMessage();
   const [accountNumber, setAccountNumber] = useState(null);
-  const [accountDetail, _setAccountDetail] = useState(null);
+  const [accountDetail, setAccountDetail] = useState(null);
   const [transactionForm] = Form.useForm();
 
-  // Tìm kiếm tài khoản theo số tài khoản (chưa gọi API)
   const searchByAccountNumber = async () => {
-    alert(accountNumber);
+    const obj = {
+      accountNumber: accountNumber ?? "",
+      branch: userInfo?.branch ?? "",
+    };
+    try {
+      const token = cookies.get("auth-token");
+      const response = await http(token).post("/api/find-by-account", obj);
+      const data = response?.data;
+      if (data?.data) {
+        setAccountDetail(data.data);
+      } else {
+        messageApi.warning("Không có bản ghi tài khoản này");
+        setAccountDetail(null);
+      }
+    } catch (error) {
+      setAccountDetail(null);
+      const status = error.response?.status;
+      const requestUrl = error.config?.url ?? "";
+      const isFindByAccount404 =
+        status === 404 && String(requestUrl).includes("find-by-account");
+      if (isFindByAccount404) {
+        messageApi.warning("Không có bản ghi tài khoản này");
+      } else {
+        messageApi.error("Lỗi kết nối hoặc máy chủ. Vui lòng thử lại.");
+      }
+    }
   };
 
   // Xử lý khi submit form giao dịch
@@ -32,27 +77,36 @@ const NewTransaction = () => {
   return (
     <Card
       extra={
-        <Input
-          addonAfter={
-            <SearchOutlined
-              onClick={searchByAccountNumber}
-              style={{ cursor: "pointer" }}
-            />
-          }
-          onChange={(e) => setAccountNumber(e.target.value)}
-          placeholder="Nhập số tài khoản"
-          value={accountNumber ?? ""}
-        />
+        <Space.Compact style={{ maxWidth: 320, width: "100%" }}>
+          <Input
+            onChange={(e) => setAccountNumber(e.target.value)}
+            placeholder="Nhập số tài khoản"
+            value={accountNumber ?? ""}
+          />
+          <Button
+            icon={<SearchOutlined />}
+            onClick={searchByAccountNumber}
+            type="default"
+          />
+        </Space.Compact>
       }
       title="Giao dịch mới"
     >
       {contextHolder}
       {accountDetail ? (
         <div className="grid gap-6 md:grid-cols-2">
-          {/* Ảnh đại diện / CMND (placeholder) */}
+          {/* Ảnh đại diện / Chữ ký */}
           <div className="flex flex-col gap-4">
-            <Image height={120} src={dummyImageUrl} width={120} />
-            <Image height={120} src={dummyImageUrl} width={120} />
+            <Image
+              height={120}
+              src={imageSrc(baseUrl, accountDetail?.profile)}
+              width={120}
+            />
+            <Image
+              height={120}
+              src={imageSrc(baseUrl, accountDetail?.signature)}
+              width={120}
+            />
           </div>
           {/* Thông tin tài khoản: họ tên, SĐT, số dư, ngày sinh, loại tiền */}
           <div className="flex flex-col justify-center gap-2">
@@ -66,7 +120,10 @@ const NewTransaction = () => {
             </div>
             <div className="flex justify-between items-center">
               <b>Số dư</b>
-              <b>{accountDetail.finalBalance ?? "-"}</b>
+              <b>
+                {accountDetail?.currency === "INR" ? "₹" : "$"}{" "}
+                {accountDetail?.finalBalance ?? "-"}
+              </b>
             </div>
             <div className="flex justify-between items-center">
               <b>Ngày sinh</b>
